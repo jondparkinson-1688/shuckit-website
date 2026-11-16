@@ -3,47 +3,158 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Shuck it</title>
-<meta name="description" content="Shuck it: find seafood shacks around the UK. Coming soon to iPhone.">
+<title>Shuck it: find your next seafood shack</title>
+<meta name="description" content="Shuck it is the app for finding seafood shacks worth the trip, rated by people who've actually been, so you never waste a day out on a dud.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,500;9..40,600&display=swap" rel="stylesheet">
 <style>
+  /* Figma "Shuck it" styles */
+  :root {
+    --black: #1E1E1E;
+    --yellow: #FFD801;
+    --white: #FFFFFF;
+    --background-grey: #F2F0EB;
+    --gap: 16px;
+    --pad: 40px;
+  }
   * { box-sizing: border-box; }
+  html, body { margin: 0; }
   body {
-    margin: 0;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #F2F0EB;
-    color: #000;
+    /* What the footer sits on, revealed as the black section scrolls away. */
+    background: var(--background-grey);
+    color: var(--black);
     font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 500;
     font-size: 17px;
-    line-height: 1.5;
+    line-height: 1.2;
     letter-spacing: -0.01em;
-    text-align: center;
+    font-variation-settings: "opsz" 14;
   }
-  main { padding: 48px 16px; max-width: 560px; }
-  h1 { font-size: 56px; line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 16px; font-weight: 500; }
-  p { margin: 0 0 32px; color: rgba(0, 0, 0, 0.5); }
-  a {
+  a { color: inherit; }
+
+  /* The black section: full height, above the footer. */
+  main {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: var(--gap);
+    padding: var(--gap);
+    min-height: 100vh;
+    min-height: 100svh;
+    background: var(--black);
+  }
+  .panel { flex: 1 1 0; min-width: 0; padding: var(--pad); }
+
+  /* Left: yellow, logo and blurb at the top, headline, button at the bottom. */
+  .intro {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 48px;
+    background: var(--yellow);
+  }
+  .top { display: flex; gap: var(--gap); align-items: flex-start; }
+  .top > * { flex: 1 1 0; min-width: 0; }
+  .logo { display: block; width: 166px; height: auto; }
+  .blurb { margin: 0; }
+  h1 {
+    margin: 0;
+    font-weight: 500;
+    font-size: clamp(48px, 6.3vw, 96px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  .button {
     display: inline-block;
-    background: #fff;
-    color: #000;
-    border-radius: 100px;
-    padding: 14px 24px;
-    text-decoration: none;
+    align-self: flex-start;
+    padding: 20px 28px;
+    border-radius: 1000px;
+    background: var(--black);
+    color: var(--white);
     font-weight: 600;
+    text-decoration: none;
+  }
+
+  /* Right: the nets photo with the app on a phone. */
+  .visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--black) url("assets/nets.jpg") center / cover no-repeat;
+  }
+  /* The whole app screen inside a 10px black frame. As tall as the panel
+     allows (680px at most, as in Figma), so it never runs off the screen. */
+  .phone {
+    display: block;
+    box-sizing: content-box;
+    height: min(680px, calc(100svh - 2 * var(--gap) - 2 * var(--pad) - 20px));
+    min-height: 360px;
+    width: auto;
+    max-width: calc(100% - 20px);
+    aspect-ratio: 860 / 1864;
+    object-fit: contain;
+    border: 10px solid var(--black);
+    border-radius: 42px;
+  }
+
+  /* The footer waits underneath; scrolling past the black section reveals it. */
+  footer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px 32px;
+    padding: var(--pad);
+  }
+  footer nav { display: flex; gap: 32px; font-weight: 600; }
+  footer nav a { text-decoration: none; }
+  footer nav a:hover { opacity: 0.8; }
+
+  /* Phones: the two panels stack, each the height of the screen (Jon). */
+  @media (max-width: 800px) {
+    :root { --pad: 24px; }
+    main { flex-direction: column; min-height: 0; }
+    .intro, .visual { flex: none; min-height: calc(100svh - 2 * var(--gap)); }
+    .top { flex-direction: column; gap: 24px; }
+    .phone { height: min(600px, calc(100svh - 2 * var(--gap) - 2 * var(--pad) - 20px)); }
   }
 </style>
 </head>
 <body>
 <main>
-  <h1>Shuck it</h1>
-  <p>Find seafood shacks around the UK. Coming soon to iPhone.</p>
-  <a href="/legal">Privacy, Terms and Support</a>
+  <section class="panel intro">
+    <div class="top">
+      <div><img class="logo" src="assets/logo.svg" alt="Shuck it" width="166" height="34"></div>
+      <p class="blurb">Shuck it is the app for finding seafood shacks worth the trip, rated by people who’ve actually been, so you never waste a day out on a dud.</p>
+    </div>
+    <h1>Find your next seafood shack</h1>
+    <!-- Becomes "Get the app", linking to the App Store, at launch. -->
+    <span class="button">Coming soon</span>
+  </section>
+  <section class="panel visual" aria-label="The Shuck it app">
+    <img class="phone" src="assets/app-screen.jpg" alt="A seafood shack open in the Shuck it app, with its rating and distance" width="323" height="700">
+  </section>
 </main>
+<footer>
+  <span>Made with ❤️ by the sea</span>
+  <nav aria-label="Legal">
+    <a href="/legal#privacy">Privacy</a>
+    <a href="/legal#terms">Terms</a>
+    <a href="/legal#support">Support</a>
+  </nav>
+</footer>
+<script>
+  // Leave room at the bottom of the page for the footer underneath.
+  const footer = document.querySelector("footer");
+  const fit = () => { document.body.style.paddingBottom = footer.offsetHeight + "px"; };
+  new ResizeObserver(fit).observe(footer);
+  fit();
+</script>
 </body>
 </html>

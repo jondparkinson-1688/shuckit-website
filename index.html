@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,500;9..40,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/legal.css">
 <style>
   /* Figma "Shuck it" styles */
   :root {
@@ -128,6 +129,27 @@
     .intro, .visual { flex: none; min-height: calc(100svh - 2 * var(--gap)); }
     .phone { --tallest: min(600px, calc(100svh - 2 * var(--gap) - 2 * var(--pad) - 20px)); }
   }
+
+  /* Terms and Privacy Policy: a centred card over a dimmed page (Figma
+     2091:2037), 16 from the window's edges, the same width as a panel. */
+  .legal-dialog {
+    width: min(740px, calc(100% - 32px));
+    height: calc(100svh - 32px);
+    max-width: none;
+    max-height: none;
+    margin: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+    overflow: visible;
+  }
+  .legal-dialog::backdrop { background: rgba(30, 30, 30, 0.75); }
+  .legal-dialog:focus, .legal-dialog .legal:focus { outline: none; }
+  .legal-dialog .legal { height: 100%; }
+  html:has(.legal-dialog[open]) { overflow: hidden; }
+  @media (max-width: 600px) {
+    .legal-dialog { width: calc(100% - 16px); height: calc(100svh - 16px); }
+  }
 </style>
 </head>
 <body>
@@ -153,12 +175,54 @@
     <a href="/legal#support">Support</a>
   </nav>
 </footer>
+<dialog class="legal-dialog" aria-labelledby="legal-title"></dialog>
 <script>
   // Leave room at the bottom of the page for the footer underneath.
   const footer = document.querySelector("footer");
   const fit = () => { document.body.style.paddingBottom = footer.offsetHeight + "px"; };
   new ResizeObserver(fit).observe(footer);
   fit();
+
+  // Privacy, Terms and Support open the Terms and Privacy Policy card here.
+  // Its wording is read from the /legal page, so there's only one copy.
+  // Without JavaScript, or if loading fails, the links simply go to /legal.
+  const dialog = document.querySelector(".legal-dialog");
+  let loaded = null;
+  async function loadLegal() {
+    const html = await (await fetch("/legal/")).text();
+    const legal = new DOMParser().parseFromString(html, "text/html").querySelector("#legal");
+    if (!legal) throw new Error("No legal content");
+    // X closes the card instead of going to the home page.
+    const link = legal.querySelector(".close");
+    const close = document.createElement("button");
+    close.className = "close"; close.type = "button"; close.setAttribute("aria-label", "Close");
+    close.innerHTML = link.innerHTML;
+    link.replaceWith(close);
+    dialog.append(document.importNode(legal, true));
+    dialog.querySelector(".close").addEventListener("click", () => dialog.close());
+    // Jump buttons scroll the card, not the page.
+    dialog.querySelectorAll('.legal-jumps a').forEach(a => a.addEventListener("click", e => {
+      e.preventDefault();
+      dialog.querySelector(a.getAttribute("href")).scrollIntoView({ behavior: "smooth", block: "start" });
+    }));
+  }
+  document.querySelectorAll('footer nav a').forEach(a => a.addEventListener("click", async e => {
+    e.preventDefault();
+    try {
+      loaded = loaded || loadLegal();
+      await loaded;
+    } catch {
+      loaded = null;
+      location.href = a.href;
+      return;
+    }
+    dialog.showModal();
+    const section = dialog.querySelector(new URL(a.href).hash);
+    const card = dialog.querySelector(".legal");
+    if (a.hash === "#privacy") card.scrollTop = 0; else section.scrollIntoView({ block: "start" });
+  }));
+  // A click on the dimmed page (outside the card) closes it; Escape does too.
+  dialog.addEventListener("click", e => { if (e.target === dialog) dialog.close(); });
 </script>
 </body>
 </html>

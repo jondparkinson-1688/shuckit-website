@@ -48,6 +48,7 @@
 
   /* Left: yellow, logo and blurb at the top, headline, button at the bottom. */
   .intro {
+    container-type: inline-size;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -56,7 +57,12 @@
   }
   .top { display: flex; gap: var(--gap); align-items: flex-start; }
   .top > * { flex: 1 1 0; min-width: 0; }
-  .logo { display: block; width: 166px; height: auto; }
+  .logo { display: block; width: 166px; max-width: 100%; height: auto; }
+  /* A narrow yellow panel (mid-size windows, phones): logo above the blurb,
+     so they never overlap. */
+  @container (max-width: 440px) {
+    .top { flex-direction: column; gap: 24px; }
+  }
   .blurb { margin: 0; }
   h1 {
     margin: 0;
@@ -83,17 +89,16 @@
     justify-content: center;
     background: var(--black) url("assets/nets.jpg") center / cover no-repeat;
   }
-  /* The whole app screen inside a 10px black frame. As tall as the panel
-     allows (680px at most, as in Figma), so it never runs off the screen. */
+  /* The whole app screen inside a 10px black frame. Sized by its width, so
+     the frame always has the screen's exact shape (860 × 1864) and shrinks
+     in height with it: never wider than the panel, never taller than the
+     window, and at most 680px tall, as in Figma. */
   .phone {
+    --tallest: min(680px, calc(100svh - 2 * var(--gap) - 2 * var(--pad) - 20px));
     display: block;
     box-sizing: content-box;
-    height: min(680px, calc(100svh - 2 * var(--gap) - 2 * var(--pad) - 20px));
-    min-height: 360px;
-    width: auto;
-    max-width: calc(100% - 20px);
-    aspect-ratio: 860 / 1864;
-    object-fit: contain;
+    width: min(calc(100% - 20px), calc(var(--tallest) * 860 / 1864));
+    height: auto;
     border: 10px solid var(--black);
     border-radius: 42px;
   }
@@ -121,8 +126,7 @@
     :root { --pad: 24px; }
     main { flex-direction: column; min-height: 0; }
     .intro, .visual { flex: none; min-height: calc(100svh - 2 * var(--gap)); }
-    .top { flex-direction: column; gap: 24px; }
-    .phone { height: min(600px, calc(100svh - 2 * var(--gap) - 2 * var(--pad) - 20px)); }
+    .phone { --tallest: min(600px, calc(100svh - 2 * var(--gap) - 2 * var(--pad) - 20px)); }
   }
 </style>
 </head>

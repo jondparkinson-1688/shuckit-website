@@ -229,7 +229,7 @@ db.auth.onAuthStateChange((event, session) => {
 
 $("nav").onclick = (e) => {
   const b = e.target.closest("button[data-tab]");
-  if (b) { tab = b.dataset.tab; render(); }
+  if (b) { tab = b.dataset.tab; window.scrollTo(0, 0); render(); }
 };
 
 let firstRender = true;

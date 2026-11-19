@@ -42,7 +42,9 @@
   h2:first-child { margin-top: 0; }
   .muted { color: var(--black50); }
   .small { font-size: 14px; }
-  .card { background: var(--white); border-radius: var(--r16); padding: 24px; margin-bottom: 16px; }
+  .card { background: var(--white); border-radius: var(--r16); padding: 24px; margin-bottom: 16px; scroll-margin: 24px; }
+  .card.opened { box-shadow: inset 0 0 0 3px var(--blue); }
+  .opened-label { display: inline-block; margin-bottom: 8px; color: var(--blue); font-size: 14px; font-weight: 600; }
   .card h3 { margin: 0 0 4px; font-size: 24px; font-weight: 500; }
   .meta { color: var(--black50); font-size: 14px; margin-bottom: 16px; }
   .pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
@@ -140,7 +142,14 @@ const HERE = location.origin + location.pathname;
 
 const KIND = { seafood_shack: "Seafood shack", seafood_restaurant: "Seafood restaurant", fish_and_chips: "Fish & chips" };
 const CHANGE = { permanently_closed: "Closed for good", seasonal_closure: "Closed for the season", reopened: "Reopened" };
-let role = null, email = null, tab = "review";
+let role = null, email = null, tab = "review", userId = null;
+// Per-tab memory, so coming back from Google Maps (or a reload) puts you
+// where you were. Wrapped in try: private browsing can refuse storage.
+const memory = {
+  get(key) { try { return sessionStorage.getItem(key); } catch { return null; } },
+  set(key, value) { try { sessionStorage.setItem(key, value); } catch {} },
+};
+tab = memory.get("tab") || "review";
 
 // --- Small helpers. Text from the web is always set as text, never HTML. ---
 const $ = (id) => document.getElementById(id);
@@ -200,6 +209,7 @@ async function show() {
   $("signin").hidden = !!session;
   if (!session) { $("app").hidden = true; $("notTeam").hidden = true; return; }
   email = session.user.email;
+  userId = session.user.id;
   const { data } = await db.rpc("join_team");
   role = data;
   $("notTeam").hidden = !!role;
@@ -210,19 +220,33 @@ async function show() {
   for (const b of document.querySelectorAll("[data-owner]")) b.hidden = !isOwner();
   render();
 }
-db.auth.onAuthStateChange((event) => { if (event === "SIGNED_IN" || event === "SIGNED_OUT") show(); });
+// Supabase re-announces "signed in" whenever you come back to the tab;
+// only an actual change of person rebuilds the page.
+db.auth.onAuthStateChange((event, session) => {
+  const id = session?.user?.id ?? null;
+  if (id !== userId) { userId = id; show(); }
+});
 
 $("nav").onclick = (e) => {
   const b = e.target.closest("button[data-tab]");
   if (b) { tab = b.dataset.tab; render(); }
 };
 
+let firstRender = true;
 async function render() {
+  memory.set("tab", tab);
+  const keepY = window.scrollY;
   for (const b of $("nav").querySelectorAll("button")) b.setAttribute("aria-current", b.dataset.tab === tab ? "page" : "false");
   const main = $("main");
   main.replaceChildren(el("p", { class: "muted", text: "Loading…" }));
   const views = { review, week, decided, rules, settings, people };
-  try { main.replaceChildren(...await views[tab]()); }
+  try {
+    main.replaceChildren(...await views[tab]());
+    const opened = main.querySelector(".card.opened");
+    if (firstRender && opened) opened.scrollIntoView({ block: "center" });
+    else window.scrollTo(0, keepY);
+    firstRender = false;
+  }
   catch (error) { main.replaceChildren(el("div", { class: "notice error", text: "Couldn't load: " + error.message })); }
   updateCount();
 }
@@ -240,7 +264,9 @@ function candidateCard(c, buttons) {
   const missing = Array.isArray(c.missing) ? c.missing : [];
   const evidence = Array.isArray(c.evidence) ? c.evidence : [];
   const parts = c.confidence_parts || {};
-  return el("article", { class: "card" },
+  const isOpened = memory.get("opened") === c.id;
+  const card = el("article", { class: "card" + (isOpened ? " opened" : ""), "data-id": c.id },
+    isOpened ? el("span", { class: "opened-label", text: "Opened" }) : null,
     el("h3", { text: c.name }),
     el("div", { class: "meta", text: [KIND[c.kind] || "Kind not known", c.town, c.area].filter(Boolean).join(" · ") }),
     el("div", { class: "pills" },
@@ -261,6 +287,18 @@ function candidateCard(c, buttons) {
         el("li", {}, el("strong", { text: (e.source || "Source") + ": " }), e.says || "", " ",
           link(e.seen_on ? `(${e.seen_on})` : "(link)", e.url)))) : el("p", { class: "muted", text: "No evidence recorded." }),
       c.address_lines?.length || c.postcode ? el("p", { text: [...(c.address_lines || []), c.postcode].filter(Boolean).join(", ") }) : null));
+  // Opening any link on a card marks it, so you can find it again.
+  card.addEventListener("click", (e) => {
+    if (!e.target.closest("a")) return;
+    memory.set("opened", c.id);
+    for (const other of document.querySelectorAll(".card.opened")) {
+      other.classList.remove("opened");
+      other.querySelector(".opened-label")?.remove();
+    }
+    card.classList.add("opened");
+    card.prepend(el("span", { class: "opened-label", text: "Opened" }));
+  });
+  return card;
 }
 function decideButtons(c) {
   const act = (decision, label) => async (e) => {

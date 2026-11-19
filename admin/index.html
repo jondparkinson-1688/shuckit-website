@@ -86,6 +86,9 @@
   .signin h1 { font-size: 24px; font-weight: 500; margin: 0 0 32px; }
   .signin .btn { width: 100%; padding: 22px; margin-bottom: 12px; }
   .signin .or { margin: 12px 0; color: var(--black50); font-size: 14px; }
+  .rating-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .rating-row .field.rating { width: auto; min-width: 150px; background: var(--grey); font-weight: 600; }
+  .rating-row .notes { flex: 1 1 260px; color: var(--black75); font-size: 14px; margin: 0; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -141,7 +144,18 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const HERE = location.origin + location.pathname;
 
 const KIND = { seafood_shack: "Seafood shack", seafood_restaurant: "Seafood restaurant", fish_and_chips: "Fish & chips" };
-const CHANGE = { permanently_closed: "Closed for good", seasonal_closure: "Closed for the season", reopened: "Reopened" };
+const CHANGE = { permanently_closed: "Closed for good", seasonal_closure: "Closed for the season", reopened: "Reopened",
+  starting_rating: "Starting rating" };
+
+// Starting rating picker (decision 034: Jon's judgement), half stars.
+function ratingPicker(value) {
+  const select = el("select", { class: "field rating", "aria-label": "Starting rating" },
+    el("option", { value: "", text: "No stars yet" }),
+    [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1].map((n) => el("option", { value: String(n), text: "★ " + n.toFixed(1) })));
+  select.value = value == null ? "" : String(Number(value));
+  return select;
+}
+const pickedRating = (select) => (select && select.value !== "" ? Number(select.value) : null);
 let role = null, email = null, tab = "review", userId = null;
 // Per-tab memory, so coming back from Google Maps (or a reload) puts you
 // where you were. Wrapped in try: private browsing can refuse storage.
@@ -279,6 +293,13 @@ function candidateCard(c, buttons) {
     el("div", { class: "links" },
       link("Open in Google Maps ↗", c.google_url) || el("span", { class: "muted", text: "No Google Maps link" }),
       link("Website ↗", c.website_url), link("Instagram ↗", c.instagram_url)),
+    c.status === "queued" || c.status === "draft"
+      ? el("div", { class: "rating-row" },
+          (c._rating = ratingPicker(c.suggested_rating)),
+          el("p", { class: "notes", text: c.rating_notes
+            ? "Suggested: " + c.rating_notes
+            : "No suggestion yet: pick one, or leave it with no stars." }))
+      : null,
     el("div", { class: "actions" }, buttons),
     el("details", {},
       el("summary", { text: "Evidence and score" }),
@@ -304,7 +325,7 @@ function decideButtons(c) {
   const act = (decision, label) => async (e) => {
     e.target.disabled = true;
     try {
-      await run(db.rpc("decide_candidate", { p_id: c.id, p_decision: decision }));
+      await run(db.rpc("decide_candidate", { p_id: c.id, p_decision: decision, p_rating: pickedRating(c._rating) }));
       toast(`${c.name}: ${label}`);
       render();
     } catch { e.target.disabled = false; }
@@ -325,22 +346,33 @@ async function review() {
   ]);
   const out = [];
   if (proposals.length) {
-    out.push(el("h2", { text: "Closures to confirm" }));
+    out.push(el("h2", { text: "Closures and ratings to confirm" }));
     for (const p of proposals) {
+      const isRating = p.change === "starting_rating";
+      const picker = isRating ? ratingPicker(p.rating) : null;
       const decide = (accept) => async (e) => {
         e.target.disabled = true;
-        try { await run(db.rpc("decide_change", { p_id: p.id, p_accept: accept })); toast("Done"); render(); }
-        catch { e.target.disabled = false; }
+        if (accept && isRating && pickedRating(picker) == null) {
+          e.target.disabled = false;
+          return toast("Pick a rating first, or tap Not now", true);
+        }
+        try {
+          await run(db.rpc("decide_change", { p_id: p.id, p_accept: accept, p_rating: isRating ? pickedRating(picker) : null }));
+          toast("Done"); render();
+        } catch { e.target.disabled = false; }
       };
       const dates = [p.closed_from && "from " + when(p.closed_from), p.reopens_on && "reopens " + when(p.reopens_on)].filter(Boolean).join(", ");
       out.push(el("article", { class: "card" },
         el("h3", { text: p.shacks?.name || "A place" }),
         el("div", { class: "meta", text: [p.shacks?.town, CHANGE[p.change], dates].filter(Boolean).join(" · ") }),
-        el("div", { class: "pills" }, scorePill(p.confidence)),
+        isRating ? null : el("div", { class: "pills" }, scorePill(p.confidence)),
         p.reasoning ? el("p", { class: "why", text: p.reasoning }) : null,
+        isRating ? el("div", { class: "rating-row" }, picker) : null,
         el("div", { class: "actions" },
-          el("button", { class: "btn primary", text: p.change === "reopened" ? "Mark it open" : "Close it", onclick: decide(true) }),
-          el("button", { class: "btn", text: p.change === "reopened" ? "Keep it closed" : "Keep it open", onclick: decide(false) })),
+          el("button", { class: "btn primary",
+            text: isRating ? "Use this rating" : p.change === "reopened" ? "Mark it open" : "Close it", onclick: decide(true) }),
+          el("button", { class: "btn",
+            text: isRating ? "Not now" : p.change === "reopened" ? "Keep it closed" : "Keep it open", onclick: decide(false) })),
         el("details", {}, el("summary", { text: "Evidence" }),
           el("ul", { class: "evidence" }, (p.evidence || []).map((e) =>
             el("li", {}, el("strong", { text: (e.source || "Source") + ": " }), e.says || "", " ", link("(link)", e.url)))))));
@@ -361,7 +393,7 @@ async function week() {
   if (!runs.length) out.push(el("div", { class: "empty", text: "No runs yet." }));
   for (const r of runs) {
     const c = r.counts || {};
-    const label = { found: "found", published: "published", queued: "to review", skipped: "skipped", updated: "updated", checked: "rechecked", closures: "closures" };
+    const label = { found: "found", published: "published", queued: "to review", skipped: "skipped", updated: "gaps filled", ratings: "ratings suggested", checked: "rechecked", closures: "closures" };
     out.push(el("article", { class: "card" },
       el("h3", { text: when(r.started_at) }),
       el("div", { class: "meta", text: r.status === "running" ? "Running…" : r.status === "failed" ? "Didn't finish" : "Finished " + when(r.finished_at) }),

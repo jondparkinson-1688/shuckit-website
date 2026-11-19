@@ -341,7 +341,7 @@ function decideButtons(c) {
 }
 async function review() {
   const [proposals, candidates] = await Promise.all([
-    run(db.from("shack_change_proposals").select("*, shacks(name, town)").eq("status", "queued").order("created_at")),
+    run(db.from("shack_change_proposals").select("*, shacks(name, town, google_place_id, website_url)").eq("status", "queued").order("created_at")),
     run(db.from("research_candidates").select("*").eq("status", "queued").order("confidence", { ascending: false, nullsFirst: false })),
   ]);
   const out = [];
@@ -367,6 +367,12 @@ async function review() {
         el("div", { class: "meta", text: [p.shacks?.town, CHANGE[p.change], dates].filter(Boolean).join(" · ") }),
         isRating ? null : el("div", { class: "pills" }, scorePill(p.confidence)),
         p.reasoning ? el("p", { class: "why", text: p.reasoning }) : null,
+        // To see more before deciding (Jon, 2026-11-19). Opening a link is free.
+        el("div", { class: "links" },
+          link("Open in Google Maps ↗", p.shacks?.google_place_id
+            ? "https://www.google.com/maps/place/?q=place_id:" + encodeURIComponent(p.shacks.google_place_id)
+            : "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent([p.shacks?.name, p.shacks?.town].filter(Boolean).join(" "))),
+          link("Website ↗", p.shacks?.website_url)),
         isRating ? el("div", { class: "rating-row" }, picker) : null,
         el("div", { class: "actions" },
           el("button", { class: "btn primary",

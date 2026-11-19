@@ -202,7 +202,7 @@ $("emailForm").onsubmit = async (e) => {
   if (error) return toast(error.message, true);
   $("emailSent").hidden = false;
 };
-for (const id of ["signOut", "signOut2"]) $(id).onclick = async (e) => { e.preventDefault(); await db.auth.signOut(); show(); };
+for (const id of ["signOut", "signOut2"]) $(id).onclick = async (e) => { e.preventDefault(); await db.auth.signOut({ scope: "local" }); show(); };
 
 async function show() {
   const { data: { session } } = await db.auth.getSession();

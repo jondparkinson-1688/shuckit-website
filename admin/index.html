@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Shuck it admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  /* Shuck it tokens (Figma), the same as the app */
+  :root {
+    --black: #1E1E1E; --black75: rgba(30,30,30,.75); --black50: rgba(30,30,30,.5);
+    --black25: rgba(30,30,30,.25); --black10: rgba(30,30,30,.1);
+    --white: #FFFFFF; --grey: #F2F0EB; --red: #EB0000; --green: #018F1F; --yellow: #FFD801; --blue: #014CFF;
+    --r16: 16px; --r48: 48px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--grey); color: var(--black);
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 500; font-size: 17px; line-height: 1.25; letter-spacing: -0.01em;
+    font-variation-settings: "opsz" 14;
+  }
+  a { color: inherit; }
+  button, input, textarea, select { font: inherit; color: inherit; letter-spacing: inherit; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0 16px; }
+  header h1 { margin: 0; font-size: 24px; font-weight: 500; }
+  .who { font-size: 14px; color: var(--black50); text-align: right; }
+  nav { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 24px; }
+  nav button {
+    border: 0; border-radius: 1000px; padding: 12px 18px; background: var(--white); cursor: pointer; font-weight: 600;
+  }
+  nav button[aria-current="page"] { background: var(--black); color: var(--white); }
+  .count { display: inline-block; min-width: 22px; padding: 0 6px; margin-left: 6px; border-radius: 1000px;
+    background: var(--red); color: var(--white); font-size: 13px; line-height: 22px; text-align: center; }
+  nav button[aria-current="page"] .count { background: var(--white); color: var(--black); }
+  h2 { font-size: 24px; font-weight: 500; margin: 32px 0 16px; }
+  h2:first-child { margin-top: 0; }
+  .muted { color: var(--black50); }
+  .small { font-size: 14px; }
+  .card { background: var(--white); border-radius: var(--r16); padding: 24px; margin-bottom: 16px; }
+  .card h3 { margin: 0 0 4px; font-size: 24px; font-weight: 500; }
+  .meta { color: var(--black50); font-size: 14px; margin-bottom: 16px; }
+  .pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 1000px;
+    font-weight: 600; font-size: 14px; background: var(--black10); }
+  .pill.high { background: var(--green); color: var(--white); }
+  .pill.mid { background: var(--yellow); }
+  .pill.low { background: var(--red); color: var(--white); }
+  .pill.blue { background: var(--blue); color: var(--white); }
+  .why { margin: 0 0 16px; }
+  .missing { margin: 0 0 16px; padding: 12px 16px; border-radius: 12px; background: var(--grey); font-size: 14px; }
+  .links { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; font-weight: 600; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { border: 0; border-radius: 1000px; padding: 14px 20px; cursor: pointer; font-weight: 600;
+    background: var(--grey); color: var(--black); }
+  .btn.primary { background: var(--black); color: var(--white); }
+  .btn.go { background: var(--green); color: var(--white); }
+  .btn.stop { background: var(--white); color: var(--red); box-shadow: inset 0 0 0 2px var(--red); }
+  .btn:disabled { color: var(--black50); cursor: default; }
+  details { margin-top: 16px; font-size: 14px; }
+  summary { cursor: pointer; color: var(--black50); font-weight: 600; }
+  .evidence { margin: 8px 0 0; padding-left: 18px; }
+  .evidence li { margin-bottom: 6px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0;
+    border-top: 1px solid var(--black10); }
+  .row:first-child { border-top: 0; }
+  .row .grow { flex: 1; min-width: 0; }
+  .field { display: block; width: 100%; padding: 14px 16px; border: 0; border-radius: var(--r16); background: var(--white); }
+  textarea.field { min-height: 340px; line-height: 1.4; resize: vertical; }
+  .inline { display: flex; gap: 8px; flex-wrap: wrap; }
+  .inline .field { flex: 1 1 200px; width: auto; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 8px 8px 14px; border-radius: 1000px; background: var(--white); }
+  .chip button { border: 0; background: var(--grey); border-radius: 1000px; width: 26px; height: 26px; cursor: pointer; }
+  .notice { padding: 14px 16px; border-radius: var(--r16); background: var(--white); margin-bottom: 16px; }
+  .notice.error { background: var(--red); color: var(--white); }
+  .empty { padding: 32px; text-align: center; color: var(--black50); background: var(--white); border-radius: var(--r16); }
+  .signin { max-width: 420px; margin: 12vh auto 0; background: var(--white); border-radius: var(--r48); padding: 40px 24px; text-align: center; }
+  .signin h1 { font-size: 24px; font-weight: 500; margin: 0 0 32px; }
+  .signin .btn { width: 100%; padding: 22px; margin-bottom: 12px; }
+  .signin .or { margin: 12px 0; color: var(--black50); font-size: 14px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="toast" class="notice" hidden></div>
+
+  <!-- Signed out -->
+  <section id="signin" class="signin" hidden>
+    <h1>Shuck it admin</h1>
+    <button class="btn primary" id="google">Continue with Google</button>
+    <div class="or">or</div>
+    <form id="emailForm">
+      <input class="field" id="email" type="email" required placeholder="Your email" autocomplete="email" style="background:var(--grey);margin-bottom:12px">
+      <button class="btn" type="submit" style="width:100%">Email me a sign-in link</button>
+    </form>
+    <p class="muted small" id="emailSent" hidden>Check your email and tap the link.</p>
+  </section>
+
+  <!-- Signed in, not on the team -->
+  <section id="notTeam" class="signin" hidden>
+    <h1>Not on the team yet</h1>
+    <p class="muted">You're signed in as <span id="notTeamEmail"></span>. Ask Jon to add you on the People page, then come back.</p>
+    <button class="btn" id="signOut2">Sign out</button>
+  </section>
+
+  <!-- The admin -->
+  <div id="app" hidden>
+    <header>
+      <h1>Shuck it admin</h1>
+      <div class="who"><span id="me"></span><br><a href="#" id="signOut">Sign out</a></div>
+    </header>
+    <nav id="nav">
+      <button data-tab="review">Review<span class="count" id="reviewCount" hidden></span></button>
+      <button data-tab="week">This week</button>
+      <button data-tab="decided">Decided</button>
+      <button data-tab="rules">Rules</button>
+      <button data-tab="settings">Settings</button>
+      <button data-tab="people" data-owner>People</button>
+    </nav>
+    <main id="main"></main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+<script>
+// The same public address and publishable key as the app: they only let
+// people do what row-level security allows. Everything here is for the team
+// (decision 046); anyone else who signs in sees nothing.
+const SUPABASE_URL = "https://ltxnxbubmgiasjwpejvz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_kQpjpVYBfeEbMc1MvEpSCQ_HMzNmsTl";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const HERE = location.origin + location.pathname;
+
+const KIND = { seafood_shack: "Seafood shack", seafood_restaurant: "Seafood restaurant", fish_and_chips: "Fish & chips" };
+const CHANGE = { permanently_closed: "Closed for good", seasonal_closure: "Closed for the season", reopened: "Reopened" };
+let role = null, email = null, tab = "review";
+
+// --- Small helpers. Text from the web is always set as text, never HTML. ---
+const $ = (id) => document.getElementById(id);
+function el(tag, props = {}, ...kids) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (v == null || v === false) continue;
+    if (k === "class") node.className = v;
+    else if (k === "text") node.textContent = v;
+    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) node.append(kid);
+  return node;
+}
+function safeUrl(url) {
+  try { const u = new URL(url); return (u.protocol === "https:" || u.protocol === "http:") ? u.href : null; }
+  catch { return null; }
+}
+function link(text, url) {
+  const href = safeUrl(url);
+  return href ? el("a", { href, target: "_blank", rel: "noopener noreferrer", text }) : null;
+}
+function when(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+function toast(message, isError) {
+  const t = $("toast");
+  t.textContent = message; t.className = "notice" + (isError ? " error" : ""); t.hidden = false;
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => (t.hidden = true), 4000);
+}
+function scorePill(score) {
+  if (score == null) return el("span", { class: "pill", text: "No score" });
+  const level = score >= 80 ? "high" : score >= 50 ? "mid" : "low";
+  return el("span", { class: "pill " + level, text: score + "/100" });
+}
+async function run(promise) {
+  const { data, error } = await promise;
+  if (error) { toast(error.message, true); throw error; }
+  return data;
+}
+const isOwner = () => role === "owner";
+
+// --- Signing in ---
+$("google").onclick = () => db.auth.signInWithOAuth({ provider: "google", options: { redirectTo: HERE } });
+$("emailForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const { error } = await db.auth.signInWithOtp({ email: $("email").value.trim(), options: { emailRedirectTo: HERE } });
+  if (error) return toast(error.message, true);
+  $("emailSent").hidden = false;
+};
+for (const id of ["signOut", "signOut2"]) $(id).onclick = async (e) => { e.preventDefault(); await db.auth.signOut(); show(); };
+
+async function show() {
+  const { data: { session } } = await db.auth.getSession();
+  $("signin").hidden = !!session;
+  if (!session) { $("app").hidden = true; $("notTeam").hidden = true; return; }
+  email = session.user.email;
+  const { data } = await db.rpc("join_team");
+  role = data;
+  $("notTeam").hidden = !!role;
+  $("notTeamEmail").textContent = email || "";
+  $("app").hidden = !role;
+  if (!role) return;
+  $("me").textContent = `${email} · ${role === "owner" ? "Owner" : "Reviewer"}`;
+  for (const b of document.querySelectorAll("[data-owner]")) b.hidden = !isOwner();
+  render();
+}
+db.auth.onAuthStateChange((event) => { if (event === "SIGNED_IN" || event === "SIGNED_OUT") show(); });
+
+$("nav").onclick = (e) => {
+  const b = e.target.closest("button[data-tab]");
+  if (b) { tab = b.dataset.tab; render(); }
+};
+
+async function render() {
+  for (const b of $("nav").querySelectorAll("button")) b.setAttribute("aria-current", b.dataset.tab === tab ? "page" : "false");
+  const main = $("main");
+  main.replaceChildren(el("p", { class: "muted", text: "Loading…" }));
+  const views = { review, week, decided, rules, settings, people };
+  try { main.replaceChildren(...await views[tab]()); }
+  catch (error) { main.replaceChildren(el("div", { class: "notice error", text: "Couldn't load: " + error.message })); }
+  updateCount();
+}
+async function updateCount() {
+  const [{ count: a }, { count: b }] = await Promise.all([
+    db.from("research_candidates").select("id", { count: "exact", head: true }).eq("status", "queued"),
+    db.from("shack_change_proposals").select("id", { count: "exact", head: true }).eq("status", "queued"),
+  ]);
+  const n = (a || 0) + (b || 0);
+  $("reviewCount").textContent = n; $("reviewCount").hidden = !n;
+}
+
+// --- Review: one decision per card ---
+function candidateCard(c, buttons) {
+  const missing = Array.isArray(c.missing) ? c.missing : [];
+  const evidence = Array.isArray(c.evidence) ? c.evidence : [];
+  const parts = c.confidence_parts || {};
+  return el("article", { class: "card" },
+    el("h3", { text: c.name }),
+    el("div", { class: "meta", text: [KIND[c.kind] || "Kind not known", c.town, c.area].filter(Boolean).join(" · ") }),
+    el("div", { class: "pills" },
+      scorePill(c.confidence),
+      c.suggestion_id ? el("span", { class: "pill blue", text: "Submitted in the app" }) : null,
+      c.decided_by && c.status !== "queued" ? el("span", { class: "pill", text: `${c.decided_by}, ${when(c.decided_at)}` }) : null),
+    c.reasoning ? el("p", { class: "why", text: c.reasoning }) : null,
+    missing.length ? el("div", { class: "missing" }, el("strong", { text: "Missing: " }),
+      missing.map((m) => `${m.field}${m.why ? " (" + m.why + ")" : ""}`).join("; ")) : null,
+    el("div", { class: "links" },
+      link("Open in Google Maps ↗", c.google_url) || el("span", { class: "muted", text: "No Google Maps link" }),
+      link("Website ↗", c.website_url), link("Instagram ↗", c.instagram_url)),
+    el("div", { class: "actions" }, buttons),
+    el("details", {},
+      el("summary", { text: "Evidence and score" }),
+      el("p", { class: "muted", text: `Right business ${parts.identity ?? "–"}/40 · Trading ${parts.trading ?? "–"}/25 · Fits the rules ${parts.fits ?? "–"}/25 · Location ${parts.location ?? "–"}/10` }),
+      evidence.length ? el("ul", { class: "evidence" }, evidence.map((e) =>
+        el("li", {}, el("strong", { text: (e.source || "Source") + ": " }), e.says || "", " ",
+          link(e.seen_on ? `(${e.seen_on})` : "(link)", e.url)))) : el("p", { class: "muted", text: "No evidence recorded." }),
+      c.address_lines?.length || c.postcode ? el("p", { text: [...(c.address_lines || []), c.postcode].filter(Boolean).join(", ") }) : null));
+}
+function decideButtons(c) {
+  const act = (decision, label) => async (e) => {
+    e.target.disabled = true;
+    try {
+      await run(db.rpc("decide_candidate", { p_id: c.id, p_decision: decision }));
+      toast(`${c.name}: ${label}`);
+      render();
+    } catch { e.target.disabled = false; }
+  };
+  const all = {
+    publish: el("button", { class: "btn go", text: "Publish", onclick: act("publish", "published") }),
+    draft: el("button", { class: "btn", text: "Keep as draft", onclick: act("draft", "kept as a draft") }),
+    decline: el("button", { class: "btn stop", text: "Not for Shuck it", onclick: act("decline", "not for Shuck it") }),
+    review: el("button", { class: "btn", text: "Back to review", onclick: act("review", "back in the review queue") }),
+  };
+  return { queued: ["publish", "draft", "decline"], draft: ["publish", "decline"],
+           declined: ["publish", "review"], published: ["draft"] }[c.status].map((k) => all[k]);
+}
+async function review() {
+  const [proposals, candidates] = await Promise.all([
+    run(db.from("shack_change_proposals").select("*, shacks(name, town)").eq("status", "queued").order("created_at")),
+    run(db.from("research_candidates").select("*").eq("status", "queued").order("confidence", { ascending: false, nullsFirst: false })),
+  ]);
+  const out = [];
+  if (proposals.length) {
+    out.push(el("h2", { text: "Closures to confirm" }));
+    for (const p of proposals) {
+      const decide = (accept) => async (e) => {
+        e.target.disabled = true;
+        try { await run(db.rpc("decide_change", { p_id: p.id, p_accept: accept })); toast("Done"); render(); }
+        catch { e.target.disabled = false; }
+      };
+      const dates = [p.closed_from && "from " + when(p.closed_from), p.reopens_on && "reopens " + when(p.reopens_on)].filter(Boolean).join(", ");
+      out.push(el("article", { class: "card" },
+        el("h3", { text: p.shacks?.name || "A place" }),
+        el("div", { class: "meta", text: [p.shacks?.town, CHANGE[p.change], dates].filter(Boolean).join(" · ") }),
+        el("div", { class: "pills" }, scorePill(p.confidence)),
+        p.reasoning ? el("p", { class: "why", text: p.reasoning }) : null,
+        el("div", { class: "actions" },
+          el("button", { class: "btn primary", text: p.change === "reopened" ? "Mark it open" : "Close it", onclick: decide(true) }),
+          el("button", { class: "btn", text: p.change === "reopened" ? "Keep it closed" : "Keep it open", onclick: decide(false) })),
+        el("details", {}, el("summary", { text: "Evidence" }),
+          el("ul", { class: "evidence" }, (p.evidence || []).map((e) =>
+            el("li", {}, el("strong", { text: (e.source || "Source") + ": " }), e.says || "", " ", link("(link)", e.url)))))));
+    }
+  }
+  out.push(el("h2", { text: "New places" }));
+  if (!candidates.length) out.push(el("div", { class: "empty", text: "Nothing to review. Nice." }));
+  for (const c of candidates) out.push(candidateCard(c, decideButtons(c)));
+  return out;
+}
+
+// --- This week ---
+async function week() {
+  const runs = await run(db.from("research_runs").select("*").order("started_at", { ascending: false }).limit(8));
+  const since = new Date(Date.now() - 7 * 864e5).toISOString();
+  const published = await run(db.from("research_candidates").select("*").eq("status", "published").gte("decided_at", since).order("decided_at", { ascending: false }));
+  const out = [el("h2", { text: "Weekly runs" })];
+  if (!runs.length) out.push(el("div", { class: "empty", text: "No runs yet." }));
+  for (const r of runs) {
+    const c = r.counts || {};
+    const label = { found: "found", published: "published", queued: "to review", skipped: "skipped", updated: "updated", checked: "rechecked", closures: "closures" };
+    out.push(el("article", { class: "card" },
+      el("h3", { text: when(r.started_at) }),
+      el("div", { class: "meta", text: r.status === "running" ? "Running…" : r.status === "failed" ? "Didn't finish" : "Finished " + when(r.finished_at) }),
+      el("div", { class: "pills" }, Object.entries(label).filter(([k]) => c[k] != null).map(([k, l]) => el("span", { class: "pill", text: `${c[k]} ${l}` }))),
+      r.summary ? el("p", { class: "why", text: r.summary }) : null));
+  }
+  out.push(el("h2", { text: "Published in the last 7 days" }));
+  if (!published.length) out.push(el("div", { class: "empty", text: "None yet." }));
+  for (const c of published) out.push(candidateCard(c, decideButtons(c)));
+  return out;
+}
+
+// --- Decided: drafts and "Not for Shuck it", where you can change your mind ---
+async function decided() {
+  const [drafts, declined] = await Promise.all([
+    run(db.from("research_candidates").select("*").eq("status", "draft").order("decided_at", { ascending: false })),
+    run(db.from("research_candidates").select("*").eq("status", "declined").order("decided_at", { ascending: false })),
+  ]);
+  const out = [el("h2", { text: "Kept as drafts" })];
+  if (!drafts.length) out.push(el("div", { class: "empty", text: "No drafts." }));
+  for (const c of drafts) out.push(candidateCard(c, decideButtons(c)));
+  out.push(el("h2", { text: "Not for Shuck it" }),
+    el("p", { class: "muted small", text: "Never suggested again, by the agent or the app. Change your mind any time." }));
+  if (!declined.length) out.push(el("div", { class: "empty", text: "Nothing declined yet." }));
+  for (const c of declined) out.push(candidateCard(c, decideButtons(c)));
+  return out;
+}
+
+// --- Rules: what counts as a shack, plus examples ---
+async function rules() {
+  const [settingsRow] = await run(db.from("research_settings").select("shack_rules, updated_at, updated_by"));
+  const examples = await run(db.from("research_examples").select("*").order("created_at"));
+  const owner = isOwner();
+  const text = el("textarea", { class: "field", disabled: !owner });
+  text.value = settingsRow.shack_rules;
+  const out = [
+    el("h2", { text: "What counts as a shack" }),
+    el("p", { class: "muted small", text: "The agent reads this every week. Plain words are best." + (settingsRow.updated_by ? ` Last changed by ${settingsRow.updated_by}, ${when(settingsRow.updated_at)}.` : "") }),
+    text,
+  ];
+  if (owner) out.push(el("p", {}, el("button", { class: "btn primary", text: "Save rules", onclick: async () => {
+    await run(db.from("research_settings").update({ shack_rules: text.value, updated_at: new Date().toISOString(), updated_by: email }).eq("id", true));
+    toast("Rules saved");
+  } })));
+  for (const verdict of ["include", "exclude"]) {
+    out.push(el("h2", { text: verdict === "include" ? "Examples: exactly right" : "Examples: not for Shuck it" }));
+    const list = examples.filter((x) => x.verdict === verdict);
+    const box = el("div", { class: "card" });
+    if (!list.length) box.append(el("p", { class: "muted", text: "None yet." }));
+    for (const x of list) box.append(el("div", { class: "row" },
+      el("div", { class: "grow" }, el("strong", { text: x.name }), x.note ? el("div", { class: "muted small", text: x.note }) : null),
+      link("Maps ↗", x.google_url),
+      owner ? el("button", { class: "btn", text: "Remove", onclick: async () => {
+        await run(db.from("research_examples").delete().eq("id", x.id)); render(); } }) : null));
+    out.push(box);
+    if (owner) {
+      const name = el("input", { class: "field", placeholder: "Name" });
+      const url = el("input", { class: "field", placeholder: "Google Maps link" });
+      const note = el("input", { class: "field", placeholder: "Why (optional)" });
+      out.push(el("div", { class: "inline" }, name, url, note, el("button", { class: "btn primary", text: "Add", onclick: async () => {
+        if (!name.value.trim()) return toast("Add a name first", true);
+        await run(db.from("research_examples").insert({ verdict, name: name.value.trim(), google_url: url.value.trim() || null, note: note.value.trim() || null, created_by: email }));
+        render();
+      } })));
+    }
+  }
+  return out;
+}
+
+// --- Settings: areas and the auto-publish threshold ---
+async function settings() {
+  const [s] = await run(db.from("research_settings").select("areas, auto_publish_threshold"));
+  const owner = isOwner();
+  let areas = [...s.areas];
+  const chips = el("div", { class: "chips" });
+  const drawChips = () => chips.replaceChildren(...areas.map((a) => el("span", { class: "chip" }, a,
+    owner ? el("button", { "aria-label": "Remove " + a, text: "×", onclick: () => { areas = areas.filter((x) => x !== a); drawChips(); } }) : null)));
+  drawChips();
+  const newArea = el("input", { class: "field", placeholder: "Add an area, e.g. Essex" });
+  const threshold = el("input", { class: "field", type: "number", min: 0, max: 100, value: s.auto_publish_threshold, disabled: !owner, style: "max-width:140px" });
+  const out = [
+    el("h2", { text: "Where to look" }),
+    el("p", { class: "muted small", text: "Counties and London. The agent only searches here, and only auto-publishes places here." }),
+    chips,
+  ];
+  if (owner) out.push(el("div", { class: "inline" }, newArea, el("button", { class: "btn", text: "Add", onclick: () => {
+    const a = newArea.value.trim(); if (a && !areas.includes(a)) { areas.push(a); drawChips(); } newArea.value = "";
+  } })));
+  out.push(el("h2", { text: "Publish automatically at" }),
+    el("p", { class: "muted small", text: "Places scoring this or more go live without asking. Lower scores wait for review. Closures always wait." }),
+    el("div", { class: "inline", style: "align-items:center" }, threshold, el("span", { text: "/ 100" })));
+  if (owner) out.push(el("p", { style: "margin-top:24px" }, el("button", { class: "btn primary", text: "Save settings", onclick: async () => {
+    const t = Math.round(Number(threshold.value));
+    if (!(t >= 0 && t <= 100)) return toast("The threshold must be 0 to 100", true);
+    if (!areas.length) return toast("Keep at least one area", true);
+    await run(db.from("research_settings").update({ areas, auto_publish_threshold: t, updated_at: new Date().toISOString(), updated_by: email }).eq("id", true));
+    toast("Settings saved");
+  } })));
+  return out;
+}
+
+// --- People (owners only) ---
+async function people() {
+  if (!isOwner()) return [el("div", { class: "empty", text: "Only owners can manage people." })];
+  const team = await run(db.from("team_members").select("*").order("added_at"));
+  const box = el("div", { class: "card" });
+  for (const p of team) box.append(el("div", { class: "row" },
+    el("div", { class: "grow" }, el("strong", { text: p.email }),
+      el("div", { class: "muted small", text: (p.role === "owner" ? "Owner" : "Reviewer") + (p.user_id ? "" : " · hasn't signed in yet") })),
+    p.email !== email ? el("button", { class: "btn", text: "Remove", onclick: async () => {
+      await run(db.from("team_members").delete().eq("email", p.email)); render(); } }) : el("span", { class: "muted small", text: "You" })));
+  const newEmail = el("input", { class: "field", type: "email", placeholder: "Their email (the one they sign in with)" });
+  const newRole = el("select", { class: "field", style: "max-width:180px" },
+    el("option", { value: "reviewer", text: "Reviewer" }), el("option", { value: "owner", text: "Owner" }));
+  return [
+    el("h2", { text: "People" }),
+    el("p", { class: "muted small", text: "Reviewers can publish, keep as draft or decline. Owners can also change the rules, settings and people." }),
+    box,
+    el("div", { class: "inline" }, newEmail, newRole, el("button", { class: "btn primary", text: "Add", onclick: async () => {
+      const e = newEmail.value.trim().toLowerCase();
+      if (!e.includes("@")) return toast("That doesn't look like an email", true);
+      await run(db.from("team_members").insert({ email: e, role: newRole.value, added_by: email }));
+      toast(`${e} added. They can sign in at shuckit.app/admin`); render();
+    } })),
+  ];
+}
+
+show();
+</script>
+</body>
+</html>

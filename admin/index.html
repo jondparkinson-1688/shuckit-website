@@ -147,7 +147,7 @@ const HERE = location.origin + location.pathname;
 
 const KIND = { seafood_shack: "Seafood shack", seafood_restaurant: "Seafood restaurant", fish_and_chips: "Fish & chips" };
 const CHANGE = { permanently_closed: "Closed for good", seasonal_closure: "Closed for the season", reopened: "Reopened",
-  starting_rating: "Starting rating" };
+  starting_rating: "Starting rating", change_kind: "Show as a shack?" };
 
 // Starting rating picker (decision 034: Jon's judgement), half stars.
 function ratingPicker(value) {
@@ -343,14 +343,15 @@ function decideButtons(c) {
 }
 async function review() {
   const [proposals, candidates] = await Promise.all([
-    run(db.from("shack_change_proposals").select("*, shacks(name, town, google_place_id, website_url)").eq("status", "queued").order("created_at")),
+    run(db.from("shack_change_proposals").select("*, shacks(name, town, kind, google_place_id, website_url)").eq("status", "queued").order("created_at")),
     run(db.from("research_candidates").select("*").eq("status", "queued").order("confidence", { ascending: false, nullsFirst: false })),
   ]);
   const out = [];
   if (proposals.length) {
-    out.push(el("h2", { text: "Closures and ratings to confirm" }));
+    out.push(el("h2", { text: "Changes to confirm" }));
     for (const p of proposals) {
       const isRating = p.change === "starting_rating";
+      const isKind = p.change === "change_kind";
       const picker = isRating ? ratingPicker(p.rating) : null;
       const decide = (accept) => async (e) => {
         e.target.disabled = true;
@@ -366,7 +367,9 @@ async function review() {
       const dates = [p.closed_from && "from " + when(p.closed_from), p.reopens_on && "reopens " + when(p.reopens_on)].filter(Boolean).join(", ");
       out.push(el("article", { class: "card" },
         el("h3", { text: p.shacks?.name || "A place" }),
-        el("div", { class: "meta", text: [p.shacks?.town, CHANGE[p.change], dates].filter(Boolean).join(" · ") }),
+        el("div", { class: "meta", text: [p.shacks?.town,
+          isKind ? `${KIND[p.shacks?.kind] || "Now"} → ${KIND[p.new_kind] || p.new_kind}` : CHANGE[p.change],
+          dates].filter(Boolean).join(" · ") }),
         isRating ? null : el("div", { class: "pills" }, scorePill(p.confidence)),
         p.reasoning ? el("p", { class: "why", text: p.reasoning }) : null,
         // To see more before deciding (Jon, 2026-11-19). Opening a link is free.
@@ -378,9 +381,11 @@ async function review() {
         isRating ? el("div", { class: "rating-row" }, picker) : null,
         el("div", { class: "actions" },
           el("button", { class: "btn primary",
-            text: isRating ? "Use this rating" : p.change === "reopened" ? "Mark it open" : "Close it", onclick: decide(true) }),
+            text: isRating ? "Use this rating" : isKind ? "Show as a shack" : p.change === "reopened" ? "Mark it open" : "Close it",
+            onclick: decide(true) }),
           el("button", { class: "btn",
-            text: isRating ? "Not now" : p.change === "reopened" ? "Keep it closed" : "Keep it open", onclick: decide(false) })),
+            text: isRating ? "Not now" : isKind ? "Keep as restaurant" : p.change === "reopened" ? "Keep it closed" : "Keep it open",
+            onclick: decide(false) })),
         el("details", {}, el("summary", { text: "Evidence" }),
           el("ul", { class: "evidence" }, (p.evidence || []).map((e) =>
             el("li", {}, el("strong", { text: (e.source || "Source") + ": " }), e.says || "", " ", link("(link)", e.url)))))));

@@ -146,9 +146,15 @@ const SUPABASE_KEY = "sb_publishable_kQpjpVYBfeEbMc1MvEpSCQ_HMzNmsTl";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const HERE = location.origin + location.pathname;
 
-const KIND = { seafood_shack: "Seafood shack", seafood_restaurant: "Seafood restaurant", fish_and_chips: "Fish & chips" };
+const KIND = { seafood_shack: "Seafood shack", oyster_bar: "Oyster bar", seafood_restaurant: "Seafood restaurant" };
+// The three kinds the app shows (decision 047): each has Jon's definition and examples.
+const KINDS = [
+  { kind: "seafood_shack", title: "Seafood shacks", column: "shack_definition" },
+  { kind: "oyster_bar", title: "Oyster bars", column: "oyster_bar_definition" },
+  { kind: "seafood_restaurant", title: "Seafood restaurants", column: "restaurant_definition" },
+];
 const CHANGE = { permanently_closed: "Closed for good", seasonal_closure: "Closed for the season", reopened: "Reopened",
-  starting_rating: "Starting rating", change_kind: "Show as a shack?" };
+  starting_rating: "Starting rating", change_kind: "Change kind?" };
 
 // Starting rating picker (decision 034: Jon's judgement), half stars.
 function ratingPicker(value) {
@@ -382,10 +388,10 @@ async function review() {
         isRating ? el("div", { class: "rating-row" }, picker) : null,
         el("div", { class: "actions" },
           el("button", { class: "btn primary",
-            text: isRating ? "Use this rating" : isKind ? "Show as a shack" : p.change === "reopened" ? "Mark it open" : "Close it",
+            text: isRating ? "Use this rating" : isKind ? "Make it a " + (KIND[p.new_kind] || "new kind").toLowerCase() : p.change === "reopened" ? "Mark it open" : "Close it",
             onclick: decide(true) }),
           el("button", { class: "btn",
-            text: isRating ? "Not now" : isKind ? "Keep as restaurant" : p.change === "reopened" ? "Keep it closed" : "Keep it open",
+            text: isRating ? "Not now" : isKind ? "Keep as " + (KIND[p.shacks?.kind] || "it is").toLowerCase() : p.change === "reopened" ? "Keep it closed" : "Keep it open",
             onclick: decide(false) })),
         el("details", {}, el("summary", { text: "Evidence" }),
           el("ul", { class: "evidence" }, (p.evidence || []).map((e) =>
@@ -436,35 +442,16 @@ async function decided() {
   return out;
 }
 
-// --- Rules: what counts as a shack, plus examples ---
+// --- Rules: what counts, the three kinds with their examples, and the writing style ---
 async function rules() {
-  const [settingsRow] = await run(db.from("research_settings").select("shack_rules, writing_style, updated_at, updated_by"));
+  const [s] = await run(db.from("research_settings").select("shack_rules, writing_style, shack_definition, oyster_bar_definition, restaurant_definition, updated_at, updated_by"));
   const examples = await run(db.from("research_examples").select("*").order("created_at"));
   const owner = isOwner();
-  const text = el("textarea", { class: "field", disabled: !owner });
-  text.value = settingsRow.shack_rules;
-  const out = [
-    el("h2", { text: "What counts as a shack" }),
-    el("p", { class: "muted small", text: "The agent reads this every week. Plain words are best." + (settingsRow.updated_by ? ` Last changed by ${settingsRow.updated_by}, ${when(settingsRow.updated_at)}.` : "") }),
-    text,
-  ];
-  if (owner) out.push(el("p", {}, el("button", { class: "btn primary", text: "Save rules", onclick: async () => {
-    await run(db.from("research_settings").update({ shack_rules: text.value, updated_at: new Date().toISOString(), updated_by: email }).eq("id", true));
-    toast("Rules saved");
-  } })));
-  // How descriptions sound (Jon 2026-11-20): his guide and examples.
-  const style = el("textarea", { class: "field tall", disabled: !owner });
-  style.value = settingsRow.writing_style;
-  out.push(el("h2", { text: "How descriptions sound" }),
-    el("p", { class: "muted small", text: "The agent writes every description to match this. Example descriptions teach it best." }),
-    style);
-  if (owner) out.push(el("p", {}, el("button", { class: "btn primary", text: "Save writing style", onclick: async () => {
-    await run(db.from("research_settings").update({ writing_style: style.value, updated_at: new Date().toISOString(), updated_by: email }).eq("id", true));
-    toast("Writing style saved");
-  } })));
-  for (const verdict of ["include", "exclude"]) {
-    out.push(el("h2", { text: verdict === "include" ? "Examples: exactly right" : "Examples: not for Shuck it" }));
-    const list = examples.filter((x) => x.verdict === verdict);
+  const save = (fields, done) => async () => {
+    await run(db.from("research_settings").update({ ...fields(), updated_at: new Date().toISOString(), updated_by: email }).eq("id", true));
+    toast(done);
+  };
+  const exampleList = (list) => {
     const box = el("div", { class: "card" });
     if (!list.length) box.append(el("p", { class: "muted", text: "None yet." }));
     for (const x of list) box.append(el("div", { class: "row" },
@@ -472,18 +459,52 @@ async function rules() {
       link("Maps ↗", x.google_url),
       owner ? el("button", { class: "btn", text: "Remove", onclick: async () => {
         await run(db.from("research_examples").delete().eq("id", x.id)); render(); } }) : null));
-    out.push(box);
-    if (owner) {
-      const name = el("input", { class: "field", placeholder: "Name" });
-      const url = el("input", { class: "field", placeholder: "Google Maps link" });
-      const note = el("input", { class: "field", placeholder: "Why (optional)" });
-      out.push(el("div", { class: "inline" }, name, url, note, el("button", { class: "btn primary", text: "Add", onclick: async () => {
-        if (!name.value.trim()) return toast("Add a name first", true);
-        await run(db.from("research_examples").insert({ verdict, name: name.value.trim(), google_url: url.value.trim() || null, note: note.value.trim() || null, created_by: email }));
-        render();
-      } })));
-    }
+    return box;
+  };
+  const addExample = (verdict, kind) => {
+    const name = el("input", { class: "field", placeholder: "Name" });
+    const url = el("input", { class: "field", placeholder: "Google Maps link" });
+    const note = el("input", { class: "field", placeholder: "Why (optional)" });
+    return el("div", { class: "inline" }, name, url, note, el("button", { class: "btn primary", text: "Add", onclick: async () => {
+      if (!name.value.trim()) return toast("Add a name first", true);
+      await run(db.from("research_examples").insert({ verdict, kind, name: name.value.trim(), google_url: url.value.trim() || null, note: note.value.trim() || null, created_by: email }));
+      render();
+    } }));
+  };
+
+  const text = el("textarea", { class: "field", disabled: !owner });
+  text.value = s.shack_rules;
+  const out = [
+    el("h2", { text: "What counts" }),
+    el("p", { class: "muted small", text: "The agent reads all of this page every week. Plain words are best." + (s.updated_by ? ` Last changed by ${s.updated_by}, ${when(s.updated_at)}.` : "") }),
+    text,
+  ];
+  if (owner) out.push(el("p", {}, el("button", { class: "btn primary", text: "Save rules", onclick: save(() => ({ shack_rules: text.value }), "Rules saved") })));
+
+  // One section per kind: what it is, and places that are exactly that kind.
+  for (const k of KINDS) {
+    const def = el("textarea", { class: "field", disabled: !owner });
+    def.value = s[k.column];
+    out.push(el("h2", { text: k.title }),
+      el("p", { class: "muted small", text: `What makes a place one of the ${k.title.toLowerCase()}. The examples below teach the agent best.` }),
+      def);
+    if (owner) out.push(el("p", {}, el("button", { class: "btn primary", text: "Save definition", onclick: save(() => ({ [k.column]: def.value }), k.title + " saved") })));
+    out.push(el("h3", { text: "Examples: exactly right" }),
+      exampleList(examples.filter((x) => x.verdict === "include" && (x.kind || "seafood_shack") === k.kind)));
+    if (owner) out.push(addExample("include", k.kind));
   }
+
+  out.push(el("h2", { text: "Examples: not for Shuck it" }),
+    exampleList(examples.filter((x) => x.verdict === "exclude")));
+  if (owner) out.push(addExample("exclude", null));
+
+  // How descriptions sound (Jon 2026-11-20): his guide and examples.
+  const style = el("textarea", { class: "field tall", disabled: !owner });
+  style.value = s.writing_style;
+  out.push(el("h2", { text: "How descriptions sound" }),
+    el("p", { class: "muted small", text: "The agent writes every description to match this. Example descriptions teach it best." }),
+    style);
+  if (owner) out.push(el("p", {}, el("button", { class: "btn primary", text: "Save writing style", onclick: save(() => ({ writing_style: style.value }), "Writing style saved") })));
   return out;
 }
 

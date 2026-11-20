@@ -76,6 +76,7 @@
   .row .grow { flex: 1; min-width: 0; }
   .field { display: block; width: 100%; padding: 14px 16px; border: 0; border-radius: var(--r16); background: var(--white); }
   textarea.field { min-height: 340px; line-height: 1.4; resize: vertical; }
+  textarea.field.tall { min-height: 600px; }
   .inline { display: flex; gap: 8px; flex-wrap: wrap; }
   .inline .field { flex: 1 1 200px; width: auto; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -437,7 +438,7 @@ async function decided() {
 
 // --- Rules: what counts as a shack, plus examples ---
 async function rules() {
-  const [settingsRow] = await run(db.from("research_settings").select("shack_rules, updated_at, updated_by"));
+  const [settingsRow] = await run(db.from("research_settings").select("shack_rules, writing_style, updated_at, updated_by"));
   const examples = await run(db.from("research_examples").select("*").order("created_at"));
   const owner = isOwner();
   const text = el("textarea", { class: "field", disabled: !owner });
@@ -450,6 +451,16 @@ async function rules() {
   if (owner) out.push(el("p", {}, el("button", { class: "btn primary", text: "Save rules", onclick: async () => {
     await run(db.from("research_settings").update({ shack_rules: text.value, updated_at: new Date().toISOString(), updated_by: email }).eq("id", true));
     toast("Rules saved");
+  } })));
+  // How descriptions sound (Jon 2026-11-20): his guide and examples.
+  const style = el("textarea", { class: "field tall", disabled: !owner });
+  style.value = settingsRow.writing_style;
+  out.push(el("h2", { text: "How descriptions sound" }),
+    el("p", { class: "muted small", text: "The agent writes every description to match this. Example descriptions teach it best." }),
+    style);
+  if (owner) out.push(el("p", {}, el("button", { class: "btn primary", text: "Save writing style", onclick: async () => {
+    await run(db.from("research_settings").update({ writing_style: style.value, updated_at: new Date().toISOString(), updated_by: email }).eq("id", true));
+    toast("Writing style saved");
   } })));
   for (const verdict of ["include", "exclude"]) {
     out.push(el("h2", { text: verdict === "include" ? "Examples: exactly right" : "Examples: not for Shuck it" }));

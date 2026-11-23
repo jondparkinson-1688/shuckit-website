@@ -7,174 +7,220 @@
 <link rel="icon" type="image/png" href="/assets/favicon.png">
 <link rel="apple-touch-icon" href="/assets/favicon.png">
 <title>Shuck it admin</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-  /* Shuck it tokens (Figma), the same as the app */
+  /* The Atlas (decision 050): plain on purpose. Every place is one record;
+     views on the left, a list or map in the middle, the place on the right. */
   :root {
-    --black: #1E1E1E; --black75: rgba(30,30,30,.75); --black50: rgba(30,30,30,.5);
-    --black25: rgba(30,30,30,.25); --black10: rgba(30,30,30,.1);
-    --white: #FFFFFF; --grey: #F2F0EB; --red: #EB0000; --green: #018F1F; --yellow: #FFD801; --blue: #014CFF;
-    --r16: 16px; --r48: 48px;
+    --bg: #f2f4f6; --surface: #fff; --soft: #e9edf1; --ink: #15191d; --ink2: #59626c; --line: #d9dee4;
+    --accent: #0a5aa8; --accent-soft: #e2edf8; --good: #1b7a3a; --good-soft: #e3f3e8;
+    --bad: #b3261e; --bad-soft: #fbe7e5; --warn: #9a5800; --warn-soft: #fbefdc;
+    color-scheme: light;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; }
-  body {
-    background: var(--grey); color: var(--black);
-    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-    font-weight: 500; font-size: 17px; line-height: 1.25; letter-spacing: -0.01em;
-    font-variation-settings: "opsz" 14;
-  }
-  a { color: inherit; }
-  button, input, textarea, select { font: inherit; color: inherit; letter-spacing: inherit; }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0 16px; }
-  header h1 { margin: 0; font-size: 24px; font-weight: 500; }
-  .who { font-size: 14px; color: var(--black50); text-align: right; }
-  nav { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 24px; }
-  nav button {
-    border: 0; border-radius: 1000px; padding: 12px 18px; background: var(--white); cursor: pointer; font-weight: 600;
-  }
-  nav button[aria-current="page"] { background: var(--black); color: var(--white); }
-  .count { display: inline-block; min-width: 22px; padding: 0 6px; margin-left: 6px; border-radius: 1000px;
-    background: var(--red); color: var(--white); font-size: 13px; line-height: 22px; text-align: center; }
-  nav button[aria-current="page"] .count { background: var(--white); color: var(--black); }
-  h2 { font-size: 24px; font-weight: 500; margin: 32px 0 16px; }
-  h2:first-child { margin-top: 0; }
-  .muted { color: var(--black50); }
-  .small { font-size: 14px; }
-  .card { background: var(--white); border-radius: var(--r16); padding: 24px; margin-bottom: 16px; scroll-margin: 24px; }
-  .card.opened { box-shadow: inset 0 0 0 3px var(--blue); }
-  .opened-label { display: inline-block; margin-bottom: 8px; color: var(--blue); font-size: 14px; font-weight: 600; }
-  .card h3 { margin: 0 0 4px; font-size: 24px; font-weight: 500; }
-  .meta { color: var(--black50); font-size: 14px; margin-bottom: 16px; }
-  .pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 1000px;
-    font-weight: 600; font-size: 14px; background: var(--black10); }
-  .pill.high { background: var(--green); color: var(--white); }
-  .pill.mid { background: var(--yellow); }
-  .pill.low { background: var(--red); color: var(--white); }
-  .pill.blue { background: var(--blue); color: var(--white); }
-  .why { margin: 0 0 16px; }
-  .missing { margin: 0 0 16px; padding: 12px 16px; border-radius: 12px; background: var(--grey); font-size: 14px; }
-  .links { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; font-weight: 600; }
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .btn { border: 0; border-radius: 1000px; padding: 14px 20px; cursor: pointer; font-weight: 600;
-    background: var(--grey); color: var(--black); }
-  .btn.primary { background: var(--black); color: var(--white); }
-  .btn.go { background: var(--green); color: var(--white); }
-  .btn.stop { background: var(--white); color: var(--red); box-shadow: inset 0 0 0 2px var(--red); }
-  .btn:disabled { color: var(--black50); cursor: default; }
-  details { margin-top: 16px; font-size: 14px; }
-  summary { cursor: pointer; color: var(--black50); font-weight: 600; }
-  .evidence { margin: 8px 0 0; padding-left: 18px; }
-  .evidence li { margin-bottom: 6px; }
-  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0;
-    border-top: 1px solid var(--black10); }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--ink); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--accent); }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  [hidden] { display: none !important; }
+  h2, h3, h4 { margin: 0; line-height: 1.2; }
+  p { margin: 0; }
+  .muted { color: var(--ink2); }
+  .small { font-size: 13px; }
+  .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2); }
+
+  .btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 12px; font-weight: 600; cursor: pointer; }
+  .btn.yes { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .btn.no { color: var(--bad); }
+  .btn.small { padding: 4px 9px; font-size: 13px; }
+  .btn.link { border: 0; background: none; padding: 4px; color: var(--ink2); font-weight: 500; text-decoration: underline; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .field { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface); }
+  textarea.field { min-height: 120px; resize: vertical; line-height: 1.45; }
+  textarea.field.tall { min-height: 420px; }
+  .pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--soft); color: var(--ink2); white-space: nowrap; }
+  .pill.live { background: var(--good-soft); color: var(--good); }
+  .pill.waiting { background: var(--warn-soft); color: var(--warn); }
+  .pill.declined { background: var(--bad-soft); color: var(--bad); }
+  .pill.accent { background: var(--accent-soft); color: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 11px; font-size: 13px; cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 9px 16px; border-radius: 8px; font-weight: 600; z-index: 3000; max-width: calc(100% - 32px); }
+  .toast.error { background: var(--bad); }
+
+  /* Sign in */
+  .gate { max-width: 400px; margin: 12vh auto 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 32px 24px; display: grid; gap: 12px; text-align: center; }
+  .gate .btn { padding: 12px; }
+
+  /* Layout */
+  .app { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); }
+  .top { display: flex; align-items: center; gap: 12px; padding: 8px 14px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .top strong { font-size: 15px; white-space: nowrap; }
+  .top .search { max-width: 340px; }
+  .top .spacer { flex: 1; }
+  .who { font-size: 12px; color: var(--ink2); text-align: right; white-space: nowrap; }
+  .main { display: grid; grid-template-columns: 210px minmax(0, 1fr) 400px; min-height: 0; }
+  .views { background: var(--soft); border-right: 1px solid var(--line); padding: 8px; overflow-y: auto; display: grid; gap: 1px; align-content: start; }
+  .views .grp { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2); padding: 12px 10px 4px; }
+  .views button { border: 0; background: none; text-align: left; padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; gap: 8px; cursor: pointer; }
+  .views button[aria-current="true"] { background: var(--surface); font-weight: 600; box-shadow: 0 0 0 1px var(--line); }
+  .views .n { color: var(--ink2); font-variant-numeric: tabular-nums; font-size: 13px; }
+  .views .n.hot { color: var(--warn); font-weight: 700; }
+  .view-select { display: none; }
+  .mid { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  .centre { flex: 1; display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; min-height: 0; background: var(--surface); position: relative; }
+  .centre-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+  .centre-head h3 { font-size: 16px; }
+  .app.on-page .main { grid-template-columns: 210px minmax(0, 1fr); }
+  .app.on-page .panel { display: none; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex: none; }
+  .seg button { border: 0; background: var(--surface); padding: 5px 12px; font-size: 13px; font-weight: 600; color: var(--ink2); cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .list { overflow-y: auto; min-height: 0; }
+  .list table { width: 100%; border-collapse: collapse; }
+  .list th { position: sticky; top: 0; z-index: 1; background: var(--surface); text-align: left; font-size: 12px; color: var(--ink2); font-weight: 600; padding: 7px 16px; border-bottom: 1px solid var(--line); }
+  .list td { padding: 8px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .list tbody tr { cursor: pointer; }
+  .list tbody tr:hover td { background: var(--bg); }
+  .list tr[aria-selected="true"] td { background: var(--accent-soft); }
+  .list .nm { font-weight: 600; }
+  .phone-only { display: none !important; }
+  .empty { padding: 48px 16px; text-align: center; color: var(--ink2); display: grid; gap: 8px; justify-items: center; }
+  .empty strong { font-size: 18px; color: var(--ink); }
+  #map { min-height: 0; }
+  .movebar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 1500; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; gap: 8px; align-items: center; box-shadow: 0 4px 16px rgba(0,0,0,.15); max-width: calc(100% - 24px); flex-wrap: wrap; }
+  .page { overflow-y: auto; padding: 18px 20px 60px; display: grid; gap: 14px; align-content: start; min-height: 0; }
+  .page > * { max-width: 760px; }
+  .page h2 { font-size: 20px; margin-top: 14px; }
+  .page h3 { font-size: 15px; margin-top: 6px; }
+  .box { border: 1px solid var(--line); border-radius: 10px; padding: 4px 14px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
   .row:first-child { border-top: 0; }
   .row .grow { flex: 1; min-width: 0; }
-  .field { display: block; width: 100%; padding: 14px 16px; border: 0; border-radius: var(--r16); background: var(--white); }
-  textarea.field { min-height: 340px; line-height: 1.4; resize: vertical; }
-  textarea.field.tall { min-height: 600px; }
   .inline { display: flex; gap: 8px; flex-wrap: wrap; }
-  .inline .field { flex: 1 1 200px; width: auto; }
-  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-  .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 8px 8px 14px; border-radius: 1000px; background: var(--white); }
-  .chip button { border: 0; background: var(--grey); border-radius: 1000px; width: 26px; height: 26px; cursor: pointer; }
-  .notice { padding: 14px 16px; border-radius: var(--r16); background: var(--white); margin-bottom: 16px; }
-  .notice.error { background: var(--red); color: var(--white); }
-  .empty { padding: 32px; text-align: center; color: var(--black50); background: var(--white); border-radius: var(--r16); }
-  .signin { max-width: 420px; margin: 12vh auto 0; background: var(--white); border-radius: var(--r48); padding: 40px 24px; text-align: center; }
-  .signin h1 { font-size: 24px; font-weight: 500; margin: 0 0 32px; }
-  .signin .btn { width: 100%; padding: 22px; margin-bottom: 12px; }
-  .signin .or { margin: 12px 0; color: var(--black50); font-size: 14px; }
-  .rating-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-  .rating-row .field.rating { width: auto; min-width: 150px; background: var(--grey); font-weight: 600; }
-  .rating-row .notes { flex: 1 1 260px; color: var(--black75); font-size: 14px; margin: 0; }
-  [hidden] { display: none !important; }
+  .inline .field { flex: 1 1 180px; width: auto; }
+
+  /* The place panel */
+  .panel { border-left: 1px solid var(--line); background: var(--surface); overflow-y: auto; padding: 16px; display: grid; gap: 14px; align-content: start; min-height: 0; }
+  .panel h4 { font-size: 20px; }
+  .back { display: none; }
+  .ask { border: 1px solid var(--warn); background: var(--warn-soft); border-radius: 10px; padding: 14px; display: grid; gap: 10px; }
+  .ask.declined { border-color: var(--bad); background: var(--bad-soft); }
+  .ask .q { font-weight: 700; font-size: 16px; }
+  .ask ul { margin: 0; padding-left: 18px; }
+  .teach { background: var(--surface); border-radius: 8px; padding: 10px; display: grid; gap: 8px; }
+  .linkrow { display: flex; gap: 14px; flex-wrap: wrap; font-weight: 600; font-size: 13px; }
+  details summary { cursor: pointer; color: var(--ink2); font-weight: 600; font-size: 13px; }
+  details ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; display: grid; gap: 4px; }
+  .sect { display: grid; }
+  .sect > .eyebrow { padding: 8px 0 2px; }
+  .frow { display: grid; gap: 3px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .frow .lbl { font-size: 12px; color: var(--ink2); font-weight: 600; }
+  .frow .val { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .frow .val > span { min-width: 0; overflow-wrap: anywhere; white-space: pre-line; }
+  .frow .missing { color: var(--warn); font-weight: 600; }
+  .frow .edit { display: grid; gap: 8px; }
+  .hours { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 6px 8px; align-items: center; }
+  .toggle { width: 42px; height: 24px; border-radius: 12px; border: 0; background: var(--line); position: relative; padding: 0; flex: none; cursor: pointer; }
+  .toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; }
+  .toggle[aria-pressed="true"] { background: var(--good); }
+  .toggle[aria-pressed="true"]::after { left: 21px; }
+  .history { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; }
+  .history li { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .history .s { color: var(--ink2); white-space: nowrap; }
+
+  /* Phones: one column. The place opens full screen over the list. */
+  @media (max-width: 900px) {
+    .top { flex-wrap: wrap; }
+    .top .search { order: 5; max-width: none; flex: 1 1 100%; }
+    .main { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+    .views { display: none; }
+    .view-select { display: block; margin: 8px 12px; width: calc(100% - 24px); }
+    .panel { position: fixed; inset: 0; z-index: 2000; display: none; border: 0; }
+    .app.has-place:not(.moving) .panel { display: grid; }
+    .back { display: block; justify-self: start; }
+    .list .kindcol, .list .flagcol, .list .statuscol { display: none; }
+    .centre-head { flex-wrap: wrap; }
+    .list .phone-only { display: flex !important; margin-top: 4px; }
+    .who { order: 6; flex-basis: 100%; text-align: left; }
+    .list td, .list th { padding-left: 12px; padding-right: 12px; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div id="toast" class="notice" hidden></div>
+<section id="signin" class="gate" hidden>
+  <h2>Shuck it admin</h2>
+  <button class="btn yes" id="google">Continue with Google</button>
+  <p class="muted small">or</p>
+  <form id="emailForm" class="inline">
+    <input class="field" id="email" type="email" required placeholder="Your email" autocomplete="email">
+    <button class="btn" type="submit" style="flex:1 1 100%">Email me a sign-in link</button>
+  </form>
+  <p class="muted small" id="emailSent" hidden>Check your email and tap the link.</p>
+</section>
+<section id="notTeam" class="gate" hidden>
+  <h2>Not on the team yet</h2>
+  <p class="muted">You're signed in as <span id="notTeamEmail"></span>. Ask Jon to add you, then come back.</p>
+  <button class="btn" id="signOut2">Sign out</button>
+</section>
 
-  <!-- Signed out -->
-  <section id="signin" class="signin" hidden>
-    <h1>Shuck it admin</h1>
-    <button class="btn primary" id="google">Continue with Google</button>
-    <div class="or">or</div>
-    <form id="emailForm">
-      <input class="field" id="email" type="email" required placeholder="Your email" autocomplete="email" style="background:var(--grey);margin-bottom:12px">
-      <button class="btn" type="submit" style="width:100%">Email me a sign-in link</button>
-    </form>
-    <p class="muted small" id="emailSent" hidden>Check your email and tap the link.</p>
-  </section>
-
-  <!-- Signed in, not on the team -->
-  <section id="notTeam" class="signin" hidden>
-    <h1>Not on the team yet</h1>
-    <p class="muted">You're signed in as <span id="notTeamEmail"></span>. Ask Jon to add you on the People page, then come back.</p>
-    <button class="btn" id="signOut2">Sign out</button>
-  </section>
-
-  <!-- The admin -->
-  <div id="app" hidden>
-    <header>
-      <h1>Shuck it admin</h1>
-      <div class="who"><span id="me"></span><br><a href="#" id="signOut">Sign out</a></div>
-    </header>
-    <nav id="nav">
-      <button data-tab="review">Review<span class="count" id="reviewCount" hidden></span></button>
-      <button data-tab="week">This week</button>
-      <button data-tab="decided">Decided</button>
-      <button data-tab="rules">Rules</button>
-      <button data-tab="settings">Settings</button>
-      <button data-tab="people" data-owner>People</button>
-    </nav>
-    <main id="main"></main>
+<div id="app" class="app" hidden>
+  <header class="top">
+    <strong>Shuck it admin</strong>
+    <input class="field search" id="search" type="search" placeholder="Find any place or town" autocomplete="off">
+    <button class="btn" id="addPlace">Add a place</button>
+    <span class="spacer"></span>
+    <div class="who"><span id="me"></span> · <a href="#" id="signOut">Sign out</a></div>
+  </header>
+  <div class="main">
+    <nav class="views" id="views" aria-label="Views"></nav>
+    <div class="mid">
+      <select class="field view-select" id="viewSelect" aria-label="View"></select>
+      <section class="centre" id="centre">
+        <div class="centre-head" id="centreHead"></div>
+        <div class="list" id="list"></div>
+        <div id="map" hidden></div>
+        <div class="page" id="page" hidden></div>
+      </section>
+    </div>
+    <aside class="panel" id="panel"></aside>
   </div>
 </div>
+<div id="toast" class="toast" hidden></div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
 <script>
-// The same public address and publishable key as the app: they only let
-// people do what row-level security allows. Everything here is for the team
-// (decision 046); anyone else who signs in sees nothing.
+// The same public address and publishable key as the app: they only allow
+// what row-level security allows. Everything here is for the team
+// (decisions 046 and 050); anyone else who signs in sees nothing.
 const SUPABASE_URL = "https://ltxnxbubmgiasjwpejvz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_kQpjpVYBfeEbMc1MvEpSCQ_HMzNmsTl";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const HERE = location.origin + location.pathname;
 
 const KIND = { seafood_shack: "Seafood shack", oyster_bar: "Oyster bar", seafood_restaurant: "Seafood restaurant" };
-// The three kinds the app shows (decision 047): each has Jon's definition and examples.
 const KINDS = [
   { kind: "seafood_shack", title: "Seafood shacks", column: "shack_definition" },
   { kind: "oyster_bar", title: "Oyster bars", column: "oyster_bar_definition" },
   { kind: "seafood_restaurant", title: "Seafood restaurants", column: "restaurant_definition" },
 ];
-const CHANGE = { permanently_closed: "Closed for good", seasonal_closure: "Closed for the season", reopened: "Reopened",
-  starting_rating: "Starting rating", change_kind: "Change kind?" };
+const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+// "Not for Shuck it" reasons. The ones about what Shuck it is teach the
+// agent (they become examples); facts about one place don't.
+const REASONS = [
+  { text: "Chip shop", teach: true }, { text: "Seafood isn't the point", teach: true },
+  { text: "A chain", teach: true }, { text: "Not special enough", teach: true },
+  { text: "Not trading", teach: false }, { text: "Already on Shuck it", teach: false },
+];
+const STAR_OPTIONS = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1];
 
-// Starting rating picker (decision 034: Jon's judgement), half stars.
-function ratingPicker(value) {
-  const select = el("select", { class: "field rating", "aria-label": "Starting rating" },
-    el("option", { value: "", text: "No stars yet" }),
-    [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1].map((n) => el("option", { value: String(n), text: "★ " + n.toFixed(1) })));
-  select.value = value == null ? "" : String(Number(value));
-  return select;
-}
-const pickedRating = (select) => (select && select.value !== "" ? Number(select.value) : null);
-let role = null, email = null, tab = "review", userId = null;
-// Per-tab memory, so coming back from Google Maps (or a reload) puts you
-// where you were. Wrapped in try: private browsing can refuse storage.
-const memory = {
-  get(key) { try { return sessionStorage.getItem(key); } catch { return null; } },
-  set(key, value) { try { sessionStorage.setItem(key, value); } catch {} },
-};
-tab = memory.get("tab") || "review";
-
-// --- Small helpers. Text from the web is always set as text, never HTML. ---
+// ---------------------------------------------------------------------------
+// Small helpers. Text from the database is always set as text, never HTML.
+// ---------------------------------------------------------------------------
 const $ = (id) => document.getElementById(id);
 function el(tag, props = {}, ...kids) {
   const node = document.createElement(tag);
@@ -182,42 +228,957 @@ function el(tag, props = {}, ...kids) {
     if (v == null || v === false) continue;
     if (k === "class") node.className = v;
     else if (k === "text") node.textContent = v;
+    else if (k === "value") node.value = v;
     else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
     else node.setAttribute(k, v === true ? "" : v);
   }
-  for (const kid of kids.flat()) if (kid != null && kid !== false) node.append(kid);
+  for (const kid of kids.flat(Infinity)) if (kid != null && kid !== false) node.append(kid);
   return node;
 }
 function safeUrl(url) {
-  try { const u = new URL(url); return (u.protocol === "https:" || u.protocol === "http:") ? u.href : null; }
-  catch { return null; }
+  try { const u = new URL(url); return u.protocol === "https:" || u.protocol === "http:" ? u.href : null; } catch { return null; }
 }
 function link(text, url) {
   const href = safeUrl(url);
   return href ? el("a", { href, target: "_blank", rel: "noopener noreferrer", text }) : null;
 }
+function mapsUrl(placeId, name, town) {
+  if (placeId) return "https://www.google.com/maps/place/?q=place_id:" + encodeURIComponent(placeId);
+  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent([name, town].filter(Boolean).join(" "));
+}
 function when(iso) {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
+const today = () => new Date().toISOString().slice(0, 10);
 function toast(message, isError) {
   const t = $("toast");
-  t.textContent = message; t.className = "notice" + (isError ? " error" : ""); t.hidden = false;
-  clearTimeout(toast.timer); toast.timer = setTimeout(() => (t.hidden = true), 4000);
-}
-function scorePill(score) {
-  if (score == null) return el("span", { class: "pill", text: "No score" });
-  const level = score >= 80 ? "high" : score >= 50 ? "mid" : "low";
-  return el("span", { class: "pill " + level, text: score + "/100" });
+  t.textContent = message; t.className = "toast" + (isError ? " error" : ""); t.hidden = false;
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => (t.hidden = true), isError ? 6000 : 3000);
 }
 async function run(promise) {
   const { data, error } = await promise;
   if (error) { toast(error.message, true); throw error; }
   return data;
 }
+const memory = {
+  get(key) { try { return sessionStorage.getItem(key); } catch { return null; } },
+  set(key, value) { try { sessionStorage.setItem(key, value); } catch {} },
+};
+const isPhone = () => matchMedia("(max-width: 900px)").matches;
+const stars = (n) => n == null ? "No stars" : "★ " + Number(n).toFixed(1).replace(/\.0$/, "");
+function starSelect(value, id) {
+  const s = el("select", { class: "field", id, style: "width:auto" },
+    el("option", { value: "", text: "No stars yet" }),
+    STAR_OPTIONS.map((n) => el("option", { value: String(n), text: stars(n) })),
+    // Older starting ratings can be between halves (e.g. 4.7): keep showing them.
+    value != null && !STAR_OPTIONS.includes(Number(value)) ? el("option", { value: String(Number(value)), text: stars(value) + " (current)" }) : null);
+  s.value = value == null ? "" : String(Number(value));
+  return s;
+}
+const picked = (select) => (select && select.value !== "" ? Number(select.value) : null);
+
+// Opening hours: {"monday": [{"opens": "12:00", "closes": "18:00"}], ...}.
+// A missing day means "not known"; an empty list means closed that day.
+function dayText(list) {
+  if (list === undefined || list === null) return "";
+  if (!list.length) return "Closed";
+  return list.map((x) => `${x.opens}–${x.closes}`).join(", ");
+}
+function parseDay(text) {
+  const t = text.trim();
+  if (!t) return undefined;
+  if (/^closed$/i.test(t)) return [];
+  return t.split(/[,;]/).map((part) => {
+    const m = part.trim().match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(?:-|–|—|to)\s*(\d{1,2})(?:[:.](\d{2}))?$/i);
+    if (!m || +m[1] > 24 || +m[3] > 24) throw new Error(`"${part.trim()}" isn't a time range. Write it like 12:00–18:00`);
+    const hhmm = (h, mm) => String(h).padStart(2, "0") + ":" + (mm || "00");
+    return { opens: hhmm(m[1], m[2]), closes: hhmm(m[3], m[4]) };
+  });
+}
+const hasHours = (h) => !!h && Object.keys(h).length > 0;
+function hoursSummary(h) {
+  if (!hasHours(h)) return null;
+  const groups = [];
+  DAYS.forEach((d, i) => {
+    const text = h[d] === undefined ? "not known" : dayText(h[d]);
+    const last = groups[groups.length - 1];
+    if (last && last.text === text && last.to === i - 1) last.to = i; else groups.push({ from: i, to: i, text });
+  });
+  return groups.map((g) => (g.from === g.to ? DAY_SHORT[g.from] : DAY_SHORT[g.from] + "–" + DAY_SHORT[g.to]) + " " + g.text).join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// State and data
+// ---------------------------------------------------------------------------
+let role = null, email = null, userId = null;
+let shacks = [], cands = [], props = [], records = [], byKey = new Map();
+let history = { key: null, rows: [] };
+const S = {
+  view: memory.get("view") || "needs",
+  sel: memory.get("sel"),
+  mode: memory.get("mode") || "list",
+  query: "",
+  editing: null,     // the field being edited in the panel
+  asking: null,      // candidate id while choosing a "Not for Shuck it" reason
+  moving: null,      // { key, lat, lng } while moving a pin
+  adding: false,     // the Add a place form
+  fitted: null,      // which view the map last zoomed to
+};
 const isOwner = () => role === "owner";
 
-// --- Signing in ---
+async function load() {
+  [shacks, cands, props] = await Promise.all([
+    run(db.from("shacks").select("id, slug, name, kind, town, address_lines, postcode, latitude, longitude, description, website_url, instagram_url, phone, opening_hours, seasonal_note, hours_checked_on, google_place_id, is_published, fave_rank, base_rating, rating_average, rating_count, closure, closed_from, reopens_on").order("name")),
+    run(db.from("research_candidates").select("*").order("created_at")),
+    run(db.from("shack_change_proposals").select("*").eq("status", "queued").order("created_at")),
+  ]);
+  buildRecords();
+}
+
+// One record per place. A place the agent found but nobody has added yet is
+// a record too (it has a candidate but no place).
+function buildRecords() {
+  records = []; byKey = new Map();
+  const byShack = new Map();
+  for (const s of shacks) {
+    const r = { key: "p:" + s.id, shack: s, cand: null, props: [] };
+    byShack.set(s.id, r); records.push(r);
+  }
+  for (const c of cands) {
+    const r = c.shack_id && byShack.get(c.shack_id);
+    if (r) { if (!r.cand || c.status === "queued") r.cand = c; }
+    else if (c.status === "queued" || c.status === "declined") records.push({ key: "c:" + c.id, shack: null, cand: c, props: [] });
+  }
+  for (const p of props) byShack.get(p.shack_id)?.props.push(p);
+  for (const r of records) byKey.set(r.key, r);
+}
+const v = (r, f) => (r.shack ? r.shack[f] : r.cand[f]);
+const lat = (r) => v(r, "latitude"), lng = (r) => v(r, "longitude");
+function status(r) {
+  if (!r.shack) return r.cand.status === "queued" ? "waiting" : "declined";
+  if (r.cand?.status === "queued") return "waiting";
+  if (r.shack.is_published) return "live";
+  if (r.cand?.status === "declined") return "declined";
+  if (r.shack.closure === "permanent") return "closed";
+  return "draft";
+}
+function seasonallyClosed(s) {
+  if (!s || s.closure !== "seasonal") return false;
+  const t = today();
+  return (!s.closed_from || s.closed_from <= t) && (!s.reopens_on || s.reopens_on > t);
+}
+const needsYou = (r) => status(r) === "waiting" || r.props.length > 0;
+function statusPill(r) {
+  const st = status(r);
+  if (st === "live" && seasonallyClosed(r.shack)) return el("span", { class: "pill", text: r.shack.reopens_on ? "Closed till " + when(r.shack.reopens_on) : "Closed for the season" });
+  const [cls, text] = { live: ["live", "Live"], waiting: ["waiting", "Not added yet"], draft: ["", "Draft"],
+    declined: ["declined", "Not for Shuck it"], closed: ["", "Closed for good"] }[st];
+  return el("span", { class: "pill " + cls, text });
+}
+const QLABEL = { permanently_closed: "Closed for good?", seasonal_closure: "Closed for the season?", reopened: "Reopened?",
+  starting_rating: "Starting stars", change_kind: "Kind?" };
+function flags(r) {
+  const out = [];
+  if (r.cand?.status === "queued") out.push(el("span", { class: "pill waiting", text: r.cand.suggestion_id ? "Sent in from the app" : "New place" }));
+  for (const p of r.props) out.push(el("span", { class: "pill waiting", text: QLABEL[p.change] || p.change }));
+  if (r.shack?.fave_rank) out.push(el("span", { class: "pill accent", text: "Fave " + r.shack.fave_rank }));
+  if (status(r) === "live") {
+    if (!hasHours(r.shack.opening_hours)) out.push(el("span", { class: "pill", text: "No hours" }));
+    if (r.shack.base_rating == null) out.push(el("span", { class: "pill", text: "No stars" }));
+    if (!r.shack.description) out.push(el("span", { class: "pill", text: "No description" }));
+  }
+  if (status(r) === "declined" && r.cand?.decision_note) out.push(el("span", { class: "pill", text: r.cand.decision_note }));
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Views: saved filters with counts. They replace the old tabs.
+// ---------------------------------------------------------------------------
+const WEEK_AGO = () => new Date(Date.now() - 7 * 864e5).toISOString();
+const byName = (a, b) => v(a, "name").localeCompare(v(b, "name"));
+const VIEWS = [
+  ["Work", [
+    { id: "needs", label: "Needs you", hot: true, sub: "Questions from the agent. Answer one and the next opens.",
+      test: needsYou, sort: (a, b) => (b.cand?.status === "queued") - (a.cand?.status === "queued") || (b.cand?.confidence ?? 0) - (a.cand?.confidence ?? 0) || byName(a, b) },
+    { id: "agent", label: "Added by the agent", sub: "Went live by itself in the last 7 days. Check its work.",
+      test: (r) => r.shack && r.cand?.status === "published" && r.cand.decided_by === "Research agent" && r.cand.decided_at >= WEEK_AGO(),
+      sort: (a, b) => (b.cand.decided_at || "").localeCompare(a.cand.decided_at || "") },
+  ]],
+  ["All places", [
+    { id: "live", label: "Live", sub: "Showing in the app.", test: (r) => status(r) === "live" },
+    { id: "drafts", label: "Drafts", sub: "Saved, not on the map. Switch one on when it's ready.", test: (r) => status(r) === "draft" },
+    { id: "closed", label: "Closed for good", sub: "Off the map. Kept so the agent doesn't add them again.", test: (r) => status(r) === "closed" },
+    { id: "declined", label: "Not for Shuck it", sub: "Never suggested again, by the agent or the app. Change your mind any time.", test: (r) => status(r) === "declined" },
+  ]],
+  ["Gaps", [
+    { id: "nohours", label: "Missing hours", sub: "Live places with no opening hours. The agent looks again every Monday.", test: (r) => status(r) === "live" && !hasHours(r.shack.opening_hours) },
+    { id: "nostars", label: "No starting stars", sub: "Live places without your starting rating.", test: (r) => status(r) === "live" && r.shack.base_rating == null },
+    { id: "nodesc", label: "No description", sub: "The agent writes these in your style on Mondays.", test: (r) => status(r) === "live" && !r.shack.description },
+  ]],
+  ["Curate", [
+    { id: "faves", label: "Shuck it faves", sub: "Shown in Search and Catch of the day, in this order.", test: (r) => !!r.shack?.fave_rank,
+      sort: (a, b) => a.shack.fave_rank - b.shack.fave_rank },
+  ]],
+];
+const PAGES = [
+  { id: "brief", label: "The agent's brief", sub: "The agent reads all of this every Monday. Plain words work best; examples teach it most." },
+  { id: "runs", label: "Weekly runs", sub: "Each run, newest first." },
+  { id: "people", label: "People", owner: true, sub: "Reviewers answer questions and edit places. Owners can also change the brief and invite people." },
+];
+const VIEW = Object.fromEntries(VIEWS.flatMap(([, list]) => list.map((x) => [x.id, x])));
+const PAGE = Object.fromEntries(PAGES.map((x) => [x.id, x]));
+if (!VIEW[S.view] && !PAGE[S.view]) S.view = "needs";
+
+function rows() {
+  const q = S.query.trim().toLowerCase();
+  if (q) return records.filter((r) => (v(r, "name") + " " + (v(r, "town") || "")).toLowerCase().includes(q)).sort(byName);
+  const view = VIEW[S.view];
+  if (!view) return [];
+  return records.filter(view.test).sort(view.sort || byName);
+}
+
+// ---------------------------------------------------------------------------
+// Drawing
+// ---------------------------------------------------------------------------
+function draw() {
+  memory.set("view", S.view); memory.set("mode", S.mode);
+  if (S.sel) memory.set("sel", S.sel);
+  const needs = records.filter(needsYou).length;
+  document.title = (needs ? `(${needs}) ` : "") + "Shuck it admin";
+  drawViews();
+  drawCentre();
+  drawPanel();
+  $("app").classList.toggle("has-place", !!(S.sel && byKey.get(S.sel)) || S.adding);
+  $("app").classList.toggle("moving", !!S.moving);
+  $("app").classList.toggle("on-page", !!PAGE[S.view] && !S.query && !S.adding);
+}
+
+function drawViews() {
+  const navKids = [], selKids = [];
+  for (const [group, list] of VIEWS) {
+    navKids.push(el("div", { class: "grp", text: group }));
+    const og = el("optgroup", { label: group });
+    for (const view of list) {
+      const n = records.filter(view.test).length;
+      navKids.push(el("button", { "aria-current": String(S.view === view.id && !S.query), onclick: () => pickView(view.id) },
+        el("span", { text: view.label }), el("span", { class: "n" + (view.hot && n ? " hot" : ""), text: String(n) })));
+      og.append(el("option", { value: view.id, text: `${view.label} (${n})` }));
+    }
+    selKids.push(og);
+  }
+  navKids.push(el("div", { class: "grp", text: "Settings" }));
+  const og = el("optgroup", { label: "Settings" });
+  for (const page of PAGES) {
+    if (page.owner && !isOwner()) continue;
+    navKids.push(el("button", { "aria-current": String(S.view === page.id), onclick: () => pickView(page.id) }, el("span", { text: page.label })));
+    og.append(el("option", { value: page.id, text: page.label }));
+  }
+  selKids.push(og);
+  $("views").replaceChildren(...navKids);
+  $("viewSelect").replaceChildren(...selKids);
+  $("viewSelect").value = S.view;
+}
+
+function pickView(id) {
+  S.view = id; S.query = ""; $("search").value = "";
+  S.editing = null; S.asking = null; S.adding = false; S.moving = null;
+  const first = rows()[0];
+  S.sel = first && !isPhone() ? first.key : null;
+  draw();
+  $("list").scrollTop = 0;
+}
+
+function drawCentre() {
+  const page = PAGE[S.view] && !S.query ? S.view : null;
+  $("page").hidden = !page;
+  if (page) {
+    $("list").hidden = true; $("map").hidden = true;
+    $("centreHead").replaceChildren(el("div", {}, el("h3", { text: PAGE[page].label }), el("div", { class: "muted small", text: PAGE[page].sub })));
+    drawPage(page);
+    return;
+  }
+  const list = rows();
+  const view = VIEW[S.view];
+  $("centreHead").replaceChildren(
+    el("div", {}, el("h3", { text: S.query ? `Search: “${S.query.trim()}”` : view.label }),
+      el("div", { class: "muted small", text: S.query ? `${list.length} found, in every view` : view.sub })),
+    el("div", { class: "seg" }, ["list", "map"].map((m) => el("button", { "aria-pressed": String(S.mode === m),
+      text: m === "list" ? "List" : "Map", onclick: () => { S.mode = m; draw(); } }))));
+  const showMap = S.mode === "map" || !!S.moving;
+  $("list").hidden = showMap; $("map").hidden = !showMap;
+  if (showMap) drawMap(list); else drawList(list);
+}
+
+function drawList(list) {
+  const box = $("list");
+  if (!list.length) {
+    const kids = S.view === "needs" && !S.query
+      ? [el("strong", { text: "All clear" }), el("span", { text: "Nothing needs you until the agent's next run." }), lastRunLine()]
+      : [el("span", { text: S.query ? "No places match. Try a town." : "Nothing here." })];
+    box.replaceChildren(el("div", { class: "empty" }, kids));
+    return;
+  }
+  const faves = S.view === "faves" && !S.query;
+  box.replaceChildren(el("table", {},
+    el("thead", {}, el("tr", {}, el("th", { text: "Place" }), el("th", { class: "kindcol", text: "Kind" }), el("th", { class: faves ? "" : "statuscol", text: "Status" }), el("th", { class: faves ? "" : "flagcol", text: faves ? "Order" : "" }))),
+    el("tbody", {}, list.map((r, i) => el("tr", { "aria-selected": String(r.key === S.sel), tabindex: "0",
+      onclick: (e) => { if (!e.target.closest("button")) select(r.key); },
+      onkeydown: (e) => { if (e.key === "Enter") select(r.key); } },
+      el("td", {}, el("div", { class: "nm", text: v(r, "name") }), el("div", { class: "muted small", text: v(r, "town") || "" }),
+        faves ? null : el("div", { class: "chips phone-only" }, statusPill(r), flags(r))),
+      el("td", { class: "kindcol", text: KIND[v(r, "kind")] || "" }),
+      el("td", { class: faves ? "" : "statuscol" }, statusPill(r)),
+      el("td", { class: faves ? "" : "flagcol" }, faves ? faveButtons(list, i) : el("div", { class: "chips" }, flags(r))))))));
+}
+
+let lastRun = null;
+function lastRunLine() {
+  if (!lastRun) return null;
+  const c = lastRun.counts || {};
+  const bits = Object.entries({ published: "added", queued: "asked you", updated: "filled in", closures: "closures" })
+    .filter(([k]) => c[k]).map(([k, l]) => `${c[k]} ${l}`);
+  return el("span", { class: "small", text: `The agent last ran ${when(lastRun.started_at)}${bits.length ? ": " + bits.join(", ") : ""}.` });
+}
+
+function select(key) {
+  if (S.moving) return;
+  S.sel = key; S.editing = null; S.asking = null; S.adding = false;
+  draw();
+  $("panel").scrollTop = 0;
+  if (S.mode === "map" && map) {
+    const r = byKey.get(key);
+    if (r && lat(r) != null && !map.getBounds().contains([lat(r), lng(r)])) map.panTo([lat(r), lng(r)]);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The map (OpenStreetMap, free; decision 050). Pins show status.
+// ---------------------------------------------------------------------------
+let map = null, pins = null;
+const PIN = { waiting: "#9a5800", live: "#1b7a3a", draft: "#59626c", closed: "#59626c", declined: "#b3261e" };
+function drawMap(list) {
+  if (!map) {
+    map = L.map("map", { zoomControl: true }).setView([51.25, 0.6], 8);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
+    pins = L.layerGroup().addTo(map);
+  }
+  setTimeout(() => map.invalidateSize(), 0);
+  pins.clearLayers();
+  const inView = new Set(list.map((r) => r.key));
+  for (const r of records) {
+    if (lat(r) == null || lng(r) == null) continue;
+    if (S.moving && r.key === S.moving.key) continue;
+    const shown = inView.has(r.key);
+    if (!shown && status(r) === "declined") continue;
+    const colour = needsYou(r) ? PIN.waiting : PIN[status(r)];
+    L.circleMarker([lat(r), lng(r)], { radius: r.key === S.sel ? 10 : shown ? 7 : 5, color: "#fff", weight: 2,
+      fillColor: colour, fillOpacity: shown ? 1 : 0.3, opacity: shown ? 1 : 0.4 })
+      .bindTooltip(v(r, "name")).on("click", () => select(r.key)).addTo(pins);
+  }
+  if (S.moving) {
+    const m = L.marker([S.moving.lat, S.moving.lng], { draggable: true, autoPan: true }).addTo(pins);
+    m.on("drag", (e) => { const p = e.target.getLatLng(); S.moving.lat = p.lat; S.moving.lng = p.lng; drawMoveBar(); });
+    drawMoveBar();
+  } else $("centre").querySelector(".movebar")?.remove();
+  const fitKey = S.query + "|" + S.view;
+  if (S.fitted !== fitKey && !S.moving) {
+    S.fitted = fitKey;
+    const pts = list.filter((r) => lat(r) != null).map((r) => [lat(r), lng(r)]);
+    if (pts.length === 1) map.setView(pts[0], 13);
+    else if (pts.length) setTimeout(() => map.fitBounds(pts, { padding: [30, 30], maxZoom: 13 }), 0);
+  }
+}
+function drawMoveBar() {
+  const r = byKey.get(S.moving.key);
+  let bar = $("centre").querySelector(".movebar");
+  if (!bar) { bar = el("div", { class: "movebar" }); $("centre").append(bar); }
+  bar.replaceChildren(
+    el("span", { class: "small" }, el("strong", { text: v(r, "name") + ": " }), "drag the blue pin. ",
+      el("span", { class: "muted", text: `${S.moving.lat.toFixed(5)}, ${S.moving.lng.toFixed(5)}` })),
+    el("button", { class: "btn yes small", text: "Save position", onclick: async () => {
+      const { lat: a, lng: b } = S.moving;
+      S.moving = null;
+      await save(r, { latitude: +a.toFixed(6), longitude: +b.toFixed(6) }, "Position saved");
+    } }),
+    el("button", { class: "btn small", text: "Cancel", onclick: () => { S.moving = null; draw(); } }));
+}
+function startMove(r) {
+  S.moving = { key: r.key, lat: lat(r), lng: lng(r) };
+  S.editing = null;
+  draw();
+  map.setView([lat(r), lng(r)], Math.max(map.getZoom(), 16));
+}
+
+// ---------------------------------------------------------------------------
+// Saving (every change goes through the database's own functions)
+// ---------------------------------------------------------------------------
+async function refresh(keepKey) {
+  await load();
+  if (keepKey !== undefined) S.sel = keepKey;
+  if (S.sel && !byKey.get(S.sel)) S.sel = null;
+  history.key = null;
+  draw();
+}
+async function save(r, changes, message) {
+  try {
+    await run(db.rpc("team_update_place", { p_id: r.shack.id, p_changes: changes }));
+    S.editing = null;
+    toast(message || "Saved");
+  } catch { /* toast already shown */ }
+  await refresh();
+}
+// After answering a question in Needs you, the next one opens.
+function nextAfter(key) {
+  if (S.view !== "needs" || S.query) return key;
+  const list = rows();
+  const r = byKey.get(key);
+  if (r && needsYou(r)) return key;
+  return list[0]?.key ?? null;
+}
+async function decideCandidate(r, decision, opts = {}) {
+  const c = r.cand;
+  try {
+    const result = await run(db.rpc("decide_candidate", { p_id: c.id, p_decision: decision, p_note: opts.note ?? null,
+      p_rating: opts.rating ?? null, p_teach: !!opts.teach }));
+    toast({ published: `${c.name} is on the map`, draft: `${c.name} saved as a draft`,
+      declined: opts.teach ? `Not for Shuck it. The agent will learn from it.` : "Not for Shuck it", queued: "Back in Needs you" }[result] || "Done");
+  } catch { return; }
+  S.asking = null;
+  await load();
+  // Adding it turns the candidate into a place: follow it there.
+  const shackId = cands.find((x) => x.id === c.id)?.shack_id;
+  showNext(shackId && byKey.has("p:" + shackId) ? "p:" + shackId : r.key);
+}
+async function decideChange(r, p, accept, rating) {
+  try {
+    await run(db.rpc("decide_change", { p_id: p.id, p_accept: accept, p_rating: rating ?? null }));
+    toast(accept ? "Done" : "Left as it was");
+  } catch { return; }
+  await load();
+  showNext(r.key);
+}
+function showNext(key) {
+  S.sel = nextAfter(key);
+  if (S.sel && !byKey.get(S.sel)) S.sel = null;
+  S.editing = null; history.key = null;
+  draw();
+  $("panel").scrollTop = 0;
+}
+
+// ---------------------------------------------------------------------------
+// The place panel
+// ---------------------------------------------------------------------------
+function drawPanel() {
+  const panel = $("panel");
+  if (S.adding) { panel.replaceChildren(...addPlaceForm()); return; }
+  if (PAGE[S.view] && !S.query) { panel.replaceChildren(); return; }
+  const r = byKey.get(S.sel);
+  if (!r) {
+    panel.replaceChildren(el("div", { class: "empty" }, el("span", { text: "Pick a place from the list or the map." })));
+    return;
+  }
+  const kids = [
+    el("button", { class: "btn back", text: "‹ Back", onclick: () => { S.sel = null; S.editing = null; draw(); } }),
+    el("div", { style: "display:grid;gap:6px" }, el("h4", { text: v(r, "name") }),
+      el("div", { class: "chips" }, el("span", { class: "muted", text: [v(r, "town"), KIND[v(r, "kind")]].filter(Boolean).join(" · ") }), statusPill(r))),
+  ];
+  if (r.cand?.status === "queued") kids.push(candidateQuestion(r));
+  for (const p of r.props) kids.push(changeQuestion(r, p));
+  if (status(r) === "declined" && r.cand) kids.push(declinedBox(r));
+  if (r.shack) kids.push(...placeSections(r));
+  else kids.push(candidateDetails(r.cand));
+  panel.replaceChildren(...kids);
+  if (r.shack) loadHistory(r);
+}
+
+// "Add X to the map?"
+function candidateQuestion(r) {
+  const c = r.cand;
+  const missing = Array.isArray(c.missing) ? c.missing : [];
+  const rating = starSelect(c.suggested_rating, "candStars");
+  const box = el("div", { class: "ask" },
+    el("p", { class: "eyebrow", text: (c.suggestion_id ? "Sent in from the app" : "Found by the agent") + (c.decided_by && c.status === "queued" && c.decided_at ? " · back for review" : "") }),
+    el("p", { class: "q", text: `Add ${c.name} to the map?` }),
+    el("p", { class: "small", text: [KIND[c.kind] || "Kind not known", [c.town, c.area].filter(Boolean).join(", "),
+      c.confidence != null ? `${c.confidence}/100 sure` : null].filter(Boolean).join(" · ") }),
+    c.reasoning ? el("p", { text: c.reasoning }) : null,
+    missing.length ? el("p", { class: "small" }, el("strong", { text: "Missing: " }), missing.map((m) => m.field + (m.why ? ` (${m.why})` : "")).join("; ")) : null,
+    el("div", { class: "linkrow" }, link("Google Maps ↗", c.google_url || mapsUrl(c.google_place_id, c.name, c.town)),
+      link("Website ↗", c.website_url), link("Instagram ↗", c.instagram_url)),
+    evidenceDetails(c),
+    el("div", { class: "chips" }, el("span", { class: "small", text: "Starting stars" }), rating),
+    c.rating_notes ? el("p", { class: "small muted", text: "Agent's suggestion: " + c.rating_notes } ) : null);
+  if (S.asking === c.id) {
+    box.append(reasonPicker(r));
+  } else {
+    box.append(el("div", { class: "chips" },
+      el("button", { class: "btn yes", text: "Add it", onclick: (e) => { e.target.disabled = true; decideCandidate(r, "publish", { rating: picked(rating) }); } }),
+      el("button", { class: "btn", text: "Keep as draft", onclick: (e) => { e.target.disabled = true; decideCandidate(r, "draft", { rating: picked(rating) }); } }),
+      el("button", { class: "btn no", text: "Not for Shuck it", onclick: () => { S.asking = c.id; drawPanel(); } })));
+    if (S.view === "needs" && !S.query && rows().length > 1) box.append(el("button", { class: "btn link", style: "justify-self:start", text: "Skip for now",
+      onclick: () => { const list = rows(); const i = list.findIndex((x) => x.key === r.key); S.sel = list[(i + 1) % list.length].key; draw(); } }));
+  }
+  return box;
+}
+function reasonPicker(r) {
+  let reason = null;
+  const other = el("input", { class: "field", id: "otherReason", placeholder: "Or say why in a few words" });
+  const chips = el("div", { class: "chips" });
+  const go = el("button", { class: "btn yes", text: "Not for Shuck it", disabled: true });
+  const hint = el("p", { class: "small muted" });
+  const refreshChips = () => {
+    chips.replaceChildren(...REASONS.map((x) => el("button", { class: "chip", "aria-pressed": String(reason === x), text: x.text,
+      onclick: () => { reason = x; other.value = ""; refreshChips(); } })));
+    const teach = other.value.trim() ? true : reason?.teach;
+    go.disabled = !reason && !other.value.trim();
+    hint.textContent = go.disabled ? "Pick a reason." : teach
+      ? "The agent will learn from this: it becomes a “not for Shuck it” example in its brief."
+      : "A fact about this place, so it isn't added to the agent's brief. It won't be suggested again.";
+  };
+  other.addEventListener("input", () => { if (other.value.trim()) reason = null; refreshChips(); });
+  go.onclick = () => {
+    go.disabled = true;
+    const note = other.value.trim() || reason.text;
+    decideCandidate(r, "decline", { note, teach: other.value.trim() ? true : reason.teach });
+  };
+  refreshChips();
+  return el("div", { class: "teach" }, el("strong", { text: "Why not?" }), chips, other, hint,
+    el("div", { class: "chips" }, go, el("button", { class: "btn link", text: "Cancel", onclick: () => { S.asking = null; drawPanel(); } })));
+}
+function evidenceDetails(x) {
+  const ev = Array.isArray(x.evidence) ? x.evidence : [];
+  const parts = x.confidence_parts || {};
+  return el("details", {}, el("summary", { text: "Evidence" + (x.confidence_parts ? " and score" : "") }),
+    x.confidence_parts && Object.keys(parts).length ? el("p", { class: "small muted", style: "margin-top:6px",
+      text: `Right business ${parts.identity ?? "–"}/40 · Trading ${parts.trading ?? "–"}/25 · Fits the rules ${parts.fits ?? "–"}/25 · Position ${parts.location ?? "–"}/10` }) : null,
+    ev.length ? el("ul", {}, ev.map((e) => el("li", {}, el("strong", { text: (e.source || "Source") + ": " }), e.says || "", " ",
+      link(e.seen_on ? `(${e.seen_on})` : "(link)", e.url)))) : el("p", { class: "small muted", text: "No evidence recorded." }));
+}
+function declinedBox(r) {
+  const c = r.cand;
+  return el("div", { class: "ask declined" },
+    el("p", { class: "q", text: "Not for Shuck it" }),
+    el("p", { class: "small", text: [c.decision_note, c.decided_by && `${c.decided_by === email ? "you" : c.decided_by}, ${when(c.decided_at)}`].filter(Boolean).join(" · ") }),
+    el("p", { class: "small muted", text: "Neither the agent nor Submit a shack will suggest it again." }),
+    el("div", { class: "chips" },
+      el("button", { class: "btn", text: "Add it after all", onclick: (e) => { e.target.disabled = true; decideCandidate(r, "publish"); } }),
+      el("button", { class: "btn", text: "Back to Needs you", onclick: (e) => { e.target.disabled = true; decideCandidate(r, "review"); } })));
+}
+function changeQuestion(r, p) {
+  const name = v(r, "name");
+  const dates = (p.closed_from ? "From " + when(p.closed_from) : "") + (p.reopens_on ? (p.closed_from ? ", reopens " : "Reopens ") + when(p.reopens_on) : "");
+  const rating = p.change === "starting_rating" ? starSelect(p.rating, "propStars") : null;
+  const q = {
+    permanently_closed: [`Has ${name} closed for good?`, "Take it off the map", "Keep it open"],
+    seasonal_closure: [`Has ${name} closed for the season?`, p.reopens_on ? "Close it till " + when(p.reopens_on) : "Close it for the season", "Keep it open"],
+    reopened: [`Has ${name} reopened?`, "Mark it open", "Keep it closed"],
+    starting_rating: [`Start ${name} on ${stars(p.rating)}?`, "Use these stars", "No stars yet"],
+    change_kind: [`Is ${name} ${p.new_kind === "oyster_bar" ? "an" : "a"} ${(KIND[p.new_kind] || "").toLowerCase()} rather than ${["oyster_bar"].includes(v(r, "kind")) ? "an" : "a"} ${(KIND[v(r, "kind")] || "").toLowerCase()}?`,
+      "Make it " + (p.new_kind === "oyster_bar" ? "an " : "a ") + (KIND[p.new_kind] || "").toLowerCase(), "Keep it as it is"],
+  }[p.change] || [p.change, "Yes", "No"];
+  return el("div", { class: "ask" },
+    el("p", { class: "eyebrow", text: "Waiting for you · " + (QLABEL[p.change] || p.change) }),
+    el("p", { class: "q", text: q[0] }),
+    dates ? el("p", { class: "small", text: dates }) : null,
+    p.reasoning ? el("p", { text: p.reasoning }) : null,
+    el("div", { class: "linkrow" }, link("Google Maps ↗", mapsUrl(r.shack.google_place_id, name, r.shack.town)), link("Website ↗", r.shack.website_url), link("Instagram ↗", r.shack.instagram_url)),
+    p.evidence?.length ? evidenceDetails(p) : null,
+    rating ? el("div", { class: "chips" }, el("span", { class: "small", text: "Stars" }), rating) : null,
+    el("div", { class: "chips" },
+      el("button", { class: "btn yes", text: q[1], onclick: (e) => {
+        if (rating && picked(rating) == null) return toast("Pick some stars first, or choose No stars yet", true);
+        e.target.disabled = true; decideChange(r, p, true, picked(rating)); } }),
+      el("button", { class: "btn", text: q[2], onclick: (e) => { e.target.disabled = true; decideChange(r, p, false); } })));
+}
+function candidateDetails(c) {
+  const rows = [
+    ["Address", [...(c.address_lines || []), c.postcode].filter(Boolean).join("\n")],
+    ["Phone", c.phone], ["Opening hours", hoursSummary(c.opening_hours)], ["Description", c.description],
+  ];
+  return el("div", { class: "sect" }, el("span", { class: "eyebrow", text: "What the agent found" }),
+    rows.map(([l, val]) => el("div", { class: "frow" }, el("span", { class: "lbl", text: l }),
+      el("div", { class: "val" }, el("span", { class: val ? "" : "muted", text: val || "Not found" })))),
+    el("p", { class: "small muted", style: "padding-top:8px", text: "Add it (or keep it as a draft) to edit these." }));
+}
+
+// Everything about a live place or draft, each field editable on its own.
+function placeSections(r) {
+  const s = r.shack;
+  const toggleRow = (label, on, text, onclick) => el("div", { class: "frow" }, el("span", { class: "lbl", text: label }),
+    el("div", { class: "val" }, el("span", { text }), el("button", { class: "toggle", "aria-label": label, "aria-pressed": String(!!on), onclick })));
+  const faveIds = shacks.filter((x) => x.fave_rank).sort((a, b) => a.fave_rank - b.fave_rank).map((x) => x.id);
+  const st = status(r);
+  const sections = [
+    el("div", { class: "sect" }, el("span", { class: "eyebrow", text: "In the app" }),
+      toggleRow("On the map", s.is_published, s.is_published ? "Live" : st === "closed" ? "Off: closed for good" : "Off: draft",
+        () => save(r, { is_published: !s.is_published }, s.is_published ? "Taken off the map" : `${s.name} is on the map`)),
+      toggleRow("Shuck it fave", s.fave_rank, s.fave_rank ? `Yes, number ${s.fave_rank}` : "No",
+        () => setFaves(s.fave_rank ? faveIds.filter((id) => id !== s.id) : [...faveIds, s.id], s.fave_rank ? "No longer a fave" : "Added to the faves")),
+      field(r, { key: "kind", label: "Kind", type: "kind" }),
+      field(r, { key: "base_rating", label: "Starting stars", type: "stars",
+        note: s.rating_count ? `${stars(s.rating_average)} average with ${s.rating_count} rating${s.rating_count === 1 ? "" : "s"} from people` : null }),
+      field(r, { key: "closure", label: "Closure", type: "closure" })),
+    el("div", { class: "sect" }, el("span", { class: "eyebrow", text: "Details" }),
+      field(r, { key: "name", label: "Name", type: "text", required: true }),
+      field(r, { key: "town", label: "Town (shown in lists)", type: "text", required: true }),
+      field(r, { key: "address_lines", label: "Address (one line each)", type: "lines" }),
+      field(r, { key: "postcode", label: "Postcode", type: "text" }),
+      positionRow(r),
+      field(r, { key: "opening_hours", label: "Opening hours", type: "hours", important: true }),
+      field(r, { key: "seasonal_note", label: "Seasonal note", type: "textarea" }),
+      field(r, { key: "description", label: "Description", type: "textarea", important: true }),
+      field(r, { key: "phone", label: "Phone", type: "text" }),
+      field(r, { key: "website_url", label: "Website", type: "url" }),
+      field(r, { key: "instagram_url", label: "Instagram", type: "url" }),
+      field(r, { key: "google_place_id", label: "Google Place ID (for live hours and photos)", type: "text" })),
+    el("div", { class: "linkrow" }, link("Google Maps ↗", mapsUrl(s.google_place_id, s.name, s.town)),
+      s.is_published && s.slug ? link("Share link ↗", "https://shuckit.app/shack/" + s.slug) : null),
+    el("div", { class: "sect" }, el("span", { class: "eyebrow", text: "History" }), el("ul", { class: "history", id: "history" }, el("li", { class: "muted", text: "Loading…" }))),
+  ];
+  if (!s.is_published && isOwner()) sections.push(deleteDraft(r));
+  return sections;
+}
+
+function display(r, f) {
+  const val = r.shack[f.key];
+  switch (f.type) {
+    case "kind": return KIND[val] || "";
+    case "stars": return val == null ? "" : stars(val);
+    case "lines": return (val || []).join("\n");
+    case "hours": return hoursSummary(val) || "";
+    case "closure":
+      if (!val) return "Open";
+      if (val === "permanent") return "Closed for good" + (r.shack.closed_from ? " since " + when(r.shack.closed_from) : "");
+      return "Closed for the season" + (r.shack.closed_from ? " from " + when(r.shack.closed_from) : "") + (r.shack.reopens_on ? ", reopens " + when(r.shack.reopens_on) : "");
+    default: return val == null ? "" : String(val);
+  }
+}
+function field(r, f) {
+  const shown = display(r, f);
+  const row = el("div", { class: "frow" }, el("span", { class: "lbl", text: f.label }));
+  if (S.editing !== f.key) {
+    const empty = !shown;
+    row.append(el("div", { class: "val" },
+      el("span", { class: empty ? (f.important && status(r) === "live" ? "missing" : "muted") : "", text: empty ? (f.important ? "Missing" : "None") : shown }),
+      el("button", { class: "btn small", text: "Edit", onclick: () => { S.editing = f.key; drawPanel(); $("panel").querySelector(".edit input, .edit textarea, .edit select")?.focus(); } })));
+    if (f.note) row.append(el("span", { class: "small muted", text: f.note }));
+    return row;
+  }
+  const s = r.shack;
+  let editor, read;
+  if (f.type === "kind") {
+    editor = el("select", { class: "field", id: "edit-kind" }, Object.entries(KIND).map(([k, l]) => el("option", { value: k, text: l })));
+    editor.value = s.kind; read = () => ({ kind: editor.value });
+  } else if (f.type === "stars") {
+    editor = starSelect(s.base_rating, "edit-stars"); read = () => ({ base_rating: picked(editor) });
+  } else if (f.type === "lines" || f.type === "textarea") {
+    editor = el("textarea", { class: "field", id: "edit-" + f.key, value: f.type === "lines" ? (s[f.key] || []).join("\n") : (s[f.key] || "") });
+    read = () => f.type === "lines"
+      ? ({ [f.key]: editor.value.split("\n").map((x) => x.trim()).filter(Boolean) })
+      : ({ [f.key]: editor.value.trim() || null });
+  } else if (f.type === "hours") {
+    const h = s.opening_hours || {};
+    const inputs = DAYS.map((d) => el("input", { class: "field", id: "edit-hours-" + d, value: dayText(h[d]), placeholder: "Not known" }));
+    editor = el("div", { style: "display:grid;gap:6px" },
+      el("div", { class: "hours" }, DAYS.map((d, i) => [el("label", { for: "edit-hours-" + d, text: DAY_SHORT[i] }), inputs[i]])),
+      el("p", { class: "small muted", text: "Like 12:00–18:00, or 12:00–15:00, 18:00–22:00. Write Closed for a day off; leave it empty if you don't know." }),
+      el("button", { class: "btn small", style: "justify-self:start", text: "Copy Monday to every day", onclick: () => inputs.forEach((x) => (x.value = inputs[0].value)) }));
+    read = () => {
+      const out = {};
+      DAYS.forEach((d, i) => { const val = parseDay(inputs[i].value); if (val !== undefined) out[d] = val; });
+      return Object.keys(out).length ? { opening_hours: out, hours_checked_on: today() } : { opening_hours: null };
+    };
+  } else if (f.type === "closure") {
+    const kind = el("select", { class: "field", id: "edit-closure" },
+      el("option", { value: "", text: "Open" }), el("option", { value: "seasonal", text: "Closed for the season" }),
+      el("option", { value: "permanent", text: "Closed for good (takes it off the map)" }));
+    kind.value = s.closure || "";
+    const from = el("input", { class: "field", type: "date", id: "edit-closed-from", value: s.closed_from || "" });
+    const until = el("input", { class: "field", type: "date", id: "edit-reopens", value: s.reopens_on || "" });
+    const dates = el("div", { class: "inline" }, el("label", { class: "small" }, "From ", from), el("label", { class: "small" }, "Reopens ", until));
+    const sync = () => { dates.hidden = !kind.value; until.disabled = kind.value !== "seasonal"; };
+    kind.onchange = sync; sync();
+    editor = el("div", { style: "display:grid;gap:6px" }, kind, dates,
+      el("p", { class: "small muted", text: "While closed for the season it shows as Closed in the app, with the reopening date." }));
+    read = () => kind.value === "permanent"
+      ? { closure: "permanent", closed_from: from.value || today(), reopens_on: null, is_published: false }
+      : kind.value === "seasonal" ? { closure: "seasonal", closed_from: from.value || null, reopens_on: until.value || null }
+      : { closure: null, closed_from: null, reopens_on: null };
+  } else {
+    editor = el("input", { class: "field", id: "edit-" + f.key, type: f.type === "url" ? "url" : "text", value: s[f.key] || "" });
+    read = () => {
+      const val = editor.value.trim();
+      if (f.required && !val) throw new Error(f.label.split(" (")[0] + " can't be empty");
+      if (f.type === "url" && val && !safeUrl(val)) throw new Error("That link should start with https://");
+      return { [f.key]: f.key === "postcode" ? (val.toUpperCase() || null) : (val || null) };
+    };
+  }
+  const doSave = async (e) => {
+    let changes;
+    try { changes = read(); } catch (err) { return toast(err.message, true); }
+    e.target.disabled = true;
+    await save(r, changes, f.label.split(" (")[0] + " saved");
+  };
+  row.append(el("div", { class: "edit" }, editor, el("div", { class: "chips" },
+    el("button", { class: "btn yes small", text: "Save", onclick: doSave }),
+    el("button", { class: "btn small", text: "Cancel", onclick: () => { S.editing = null; drawPanel(); } }))));
+  row.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { S.editing = null; drawPanel(); }
+    if (e.key === "Enter" && e.target.tagName === "INPUT" && f.type !== "hours") doSave({ target: e.target });
+  });
+  return row;
+}
+function positionRow(r) {
+  const s = r.shack;
+  const lookUp = async (e) => {
+    if (!s.postcode) return toast("Add a postcode first", true);
+    e.target.disabled = true;
+    try {
+      const res = await fetch("https://api.postcodes.io/postcodes/" + encodeURIComponent(s.postcode));
+      const json = await res.json();
+      if (!res.ok || !json.result) throw new Error();
+      S.mode = "map";
+      S.moving = { key: r.key, lat: json.result.latitude, lng: json.result.longitude };
+      draw();
+      map.setView([S.moving.lat, S.moving.lng], 16);
+      toast("Pin moved to the postcode. Nudge it into place, then save.");
+    } catch { toast("Couldn't find that postcode", true); e.target.disabled = false; }
+  };
+  return el("div", { class: "frow" }, el("span", { class: "lbl", text: "Position" }),
+    el("div", { class: "val" }, el("span", { class: "muted", text: `${(+s.latitude).toFixed(5)}, ${(+s.longitude).toFixed(5)}` }),
+      el("div", { class: "chips" },
+        el("button", { class: "btn small", text: "Move the pin", onclick: () => { S.mode = "map"; draw(); startMove(r); } }),
+        el("button", { class: "btn small", text: "Use postcode", onclick: lookUp }))));
+}
+function deleteDraft(r) {
+  const box = el("div", { class: "chips", style: "padding-top:8px" });
+  const ask = () => box.replaceChildren(
+    el("span", { class: "small", text: "Delete this draft for good? This can't be undone." }),
+    el("button", { class: "btn no small", text: "Delete it", onclick: async (e) => {
+      e.target.disabled = true;
+      try { await run(db.rpc("owner_delete_draft", { p_id: r.shack.id })); toast("Deleted"); } catch { return; }
+      await refresh(null);
+    } }),
+    el("button", { class: "btn link", text: "Keep it", onclick: () => box.replaceChildren(start) }));
+  const start = el("button", { class: "btn link", text: "Delete this draft…", onclick: ask });
+  box.append(start);
+  return box;
+}
+async function setFaves(ids, message) {
+  try { await run(db.rpc("team_set_faves", { p_ids: ids })); toast(message || "Faves saved"); } catch { return; }
+  await refresh();
+}
+function faveButtons(list, i) {
+  const ids = list.map((x) => x.shack.id);
+  const move = (to) => { const next = [...ids]; [next[i], next[to]] = [next[to], next[i]]; setFaves(next, "Order saved"); };
+  return el("div", { class: "chips" },
+    el("button", { class: "btn small", text: "↑", "aria-label": "Move up", disabled: i === 0, onclick: () => move(i - 1) }),
+    el("button", { class: "btn small", text: "↓", "aria-label": "Move down", disabled: i === ids.length - 1, onclick: () => move(i + 1) }),
+    el("button", { class: "btn small", text: "Remove", onclick: () => setFaves(ids.filter((_, j) => j !== i), "No longer a fave") }));
+}
+
+// History: every change to the place, by people and the agent, with Undo
+// for the latest change to each field.
+const FIELD_LABEL = { name: "Name", kind: "Kind", town: "Town", address_lines: "Address", postcode: "Postcode", description: "Description",
+  website_url: "Website", instagram_url: "Instagram", phone: "Phone", opening_hours: "Opening hours", seasonal_note: "Seasonal note",
+  hours_checked_on: "Hours checked", latitude: "Position", longitude: "Position", google_place_id: "Google Place ID",
+  is_published: "On the map", fave_rank: "Fave", base_rating: "Starting stars", closure: "Closure", closed_from: "Closed from", reopens_on: "Reopens" };
+let editable = new Set(Object.keys(FIELD_LABEL));
+function describe(row) {
+  const f = row.field, nv = row.new_value;
+  if (f === "created") return "Added by hand as a draft";
+  if (f === "published") return `Added to the map by the agent${nv != null ? ` (${nv}/100 sure)` : ""}`;
+  if (f.startsWith("candidate:")) return { published: "Added to the map", draft: "Kept as a draft", declined: "Not for Shuck it", queued: "Sent back for review" }[nv] || "Decision";
+  if (["permanently_closed", "seasonal_closure", "reopened"].includes(f)) return ({ permanently_closed: "Closed for good", seasonal_closure: "Closed for the season", reopened: "Reopened" }[f]) + (nv === false ? ": said no" : ": confirmed");
+  const label = FIELD_LABEL[f] || f;
+  if (f === "is_published") return nv ? "Put on the map" : "Taken off the map";
+  if (f === "fave_rank") return nv == null ? "No longer a fave" : "Fave number " + nv;
+  if (f === "base_rating") return "Starting stars: " + stars(nv);
+  if (f === "kind") return "Kind: " + (KIND[nv] || nv);
+  if (nv == null || nv === "" || (Array.isArray(nv) && !nv.length)) return label + " removed";
+  if (typeof nv === "string" && nv.length < 50 && f !== "description") return `${label}: ${nv}`;
+  return label + " changed";
+}
+async function loadHistory(r) {
+  const box = $("history");
+  if (history.key !== r.key) {
+    const { data, error } = await db.from("shack_change_log").select("*").eq("shack_id", r.shack.id)
+      .order("changed_at", { ascending: false }).limit(60);
+    if (error) { box.replaceChildren(el("li", { class: "muted", text: "Couldn't load the history." })); return; }
+    history = { key: r.key, rows: data };
+  }
+  if (!$("history") || S.sel !== r.key) return;
+  const seen = new Set();
+  const items = [];
+  for (const row of history.rows) {
+    if (row.field === "longitude" || row.field === "hours_checked_on") continue; // shown with position / hours
+    const undoable = editable.has(row.field) && !seen.has(row.field);
+    if (editable.has(row.field)) seen.add(row.field);
+    const who = row.changed_by === email ? "you" : row.changed_by === "Research agent" ? "the agent" : row.changed_by;
+    items.push(el("li", {},
+      el("span", {}, describe(row), el("span", { class: "muted", text: ` · ${who}` })),
+      el("span", { class: "chips", style: "flex-wrap:nowrap" }, el("span", { class: "s", text: when(row.changed_at) }),
+        undoable ? el("button", { class: "btn small", text: "Undo", onclick: async (e) => {
+          e.target.disabled = true;
+          try {
+            await run(db.rpc("team_undo_change", { p_log_id: row.id }));
+            if (row.field === "latitude") {
+              const lngRow = history.rows.find((x) => x.field === "longitude" && x.changed_at === row.changed_at);
+              if (lngRow) await run(db.rpc("team_undo_change", { p_log_id: lngRow.id }));
+            }
+            toast("Undone");
+          } catch { e.target.disabled = false; return; }
+          await refresh();
+        } }) : null)));
+  }
+  box.replaceChildren(...(items.length ? items : [el("li", { class: "muted", text: "No changes recorded yet." })]));
+}
+
+// Add a place by hand: name, kind, town and a position from the postcode.
+function addPlaceForm() {
+  const name = el("input", { class: "field", id: "add-name", placeholder: "Name" });
+  const kind = el("select", { class: "field", id: "add-kind" }, Object.entries(KIND).map(([k, l]) => el("option", { value: k, text: l })));
+  const town = el("input", { class: "field", id: "add-town", placeholder: "Town, e.g. Whitstable" });
+  const postcode = el("input", { class: "field", id: "add-postcode", placeholder: "Postcode" });
+  const go = el("button", { class: "btn yes", text: "Add as a draft" });
+  go.onclick = async () => {
+    if (!name.value.trim() || !town.value.trim() || !postcode.value.trim()) return toast("Fill in all four", true);
+    go.disabled = true;
+    let pos;
+    try {
+      const res = await fetch("https://api.postcodes.io/postcodes/" + encodeURIComponent(postcode.value.trim()));
+      pos = (await res.json()).result;
+      if (!pos) throw new Error();
+    } catch { go.disabled = false; return toast("Couldn't find that postcode", true); }
+    let id;
+    try {
+      id = await run(db.rpc("team_add_place", { p_name: name.value, p_kind: kind.value, p_town: town.value, p_postcode: postcode.value,
+        p_latitude: pos.latitude, p_longitude: pos.longitude }));
+    } catch { go.disabled = false; return; }
+    toast("Added as a draft. Fill in the rest, then switch On the map on.");
+    S.adding = false; S.view = "drafts"; S.query = ""; $("search").value = "";
+    await refresh("p:" + id);
+  };
+  return [
+    el("button", { class: "btn back", text: "‹ Back", onclick: () => { S.adding = false; draw(); } }),
+    el("h4", { text: "Add a place" }),
+    el("p", { class: "muted", text: "It starts as a draft, off the map. The pin goes on the postcode; you can nudge it after." }),
+    name, kind, town, postcode,
+    el("div", { class: "chips" }, go, el("button", { class: "btn", text: "Cancel", onclick: () => { S.adding = false; draw(); } })),
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// Settings pages: the agent's brief, weekly runs, people
+// ---------------------------------------------------------------------------
+async function drawPage(page) {
+  const box = $("page");
+  box.replaceChildren(el("p", { class: "muted", text: "Loading…" }));
+  try { box.replaceChildren(...await ({ brief, runs, people })[page]()); }
+  catch (error) { box.replaceChildren(el("p", { class: "muted", text: "Couldn't load: " + (error.message || error) })); }
+}
+async function brief() {
+  const [[s], examples] = await Promise.all([
+    run(db.from("research_settings").select("*")),
+    run(db.from("research_examples").select("*").order("created_at")),
+  ]);
+  const owner = isOwner();
+  const saveSettings = (fields, done) => async (e) => {
+    e.target.disabled = true;
+    try { await run(db.from("research_settings").update({ ...fields(), updated_at: new Date().toISOString(), updated_by: email }).eq("id", true)); toast(done); }
+    finally { e.target.disabled = false; }
+  };
+  const textBlock = (title, help, column, tall) => {
+    const t = el("textarea", { class: "field" + (tall ? " tall" : ""), id: "brief-" + column, disabled: !owner, value: s[column] || "" });
+    return [el("h2", { text: title }), el("p", { class: "muted small", text: help }), t,
+      owner ? el("div", {}, el("button", { class: "btn yes", text: "Save", onclick: saveSettings(() => ({ [column]: t.value }), title + " saved") })) : null];
+  };
+  const exampleList = (list) => el("div", { class: "box" }, list.length ? list.map((x) => el("div", { class: "row" },
+    el("div", { class: "grow" }, el("strong", { text: x.name }), x.note ? el("div", { class: "muted small", text: x.note }) : null,
+      x.candidate_id ? el("div", { class: "small muted", text: `From your decision, ${when(x.created_at)}` }) : null),
+    link("Maps ↗", x.google_url),
+    owner ? el("button", { class: "btn small", text: "Remove", onclick: async () => { await run(db.from("research_examples").delete().eq("id", x.id)); drawPage("brief"); } }) : null))
+    : el("p", { class: "muted", style: "padding:10px 0", text: "None yet." }));
+  const addExample = (verdict, kind) => {
+    const name = el("input", { class: "field", placeholder: "Name" });
+    const url = el("input", { class: "field", placeholder: "Google Maps link" });
+    const note = el("input", { class: "field", placeholder: "Why (optional)" });
+    return el("div", { class: "inline" }, name, url, note, el("button", { class: "btn", text: "Add", onclick: async () => {
+      if (!name.value.trim()) return toast("Add a name first", true);
+      await run(db.from("research_examples").insert({ verdict, kind, name: name.value.trim(), google_url: url.value.trim() || null, note: note.value.trim() || null, created_by: email }));
+      drawPage("brief");
+    } }));
+  };
+  // Where to look, and when to publish without asking.
+  let areas = [...s.areas];
+  const chips = el("div", { class: "chips" });
+  const drawChips = () => chips.replaceChildren(...areas.map((a) => el("span", { class: "chip" }, a + " ",
+    owner ? el("button", { class: "btn link", "aria-label": "Remove " + a, text: "×", onclick: () => { areas = areas.filter((x) => x !== a); drawChips(); } }) : null)));
+  drawChips();
+  const newArea = el("input", { class: "field", placeholder: "Add an area, e.g. Essex" });
+  const threshold = el("input", { class: "field", type: "number", min: 0, max: 100, value: s.auto_publish_threshold, disabled: !owner, style: "max-width:100px" });
+
+  const out = [
+    el("p", { class: "muted", text: s.updated_by ? `Last changed by ${s.updated_by === email ? "you" : s.updated_by}, ${when(s.updated_at)}.` : "" }),
+    ...textBlock("What counts", "What makes a place right for Shuck it at all, and what never is.", "shack_rules"),
+  ];
+  for (const k of KINDS) {
+    out.push(...textBlock(k.title, `What makes a place one of the ${k.title.toLowerCase()}.`, k.column),
+      el("h3", { text: "Exactly right" }), exampleList(examples.filter((x) => x.verdict === "include" && (x.kind || "seafood_shack") === k.kind)),
+      owner ? addExample("include", k.kind) : null);
+  }
+  out.push(el("h2", { text: "Not for Shuck it" }),
+    el("p", { class: "muted small", text: "Places that aren't right, and why. Saying “Not for Shuck it” with a reason like “A chain” adds one here." }),
+    exampleList(examples.filter((x) => x.verdict === "exclude")), owner ? addExample("exclude", null) : null,
+    ...textBlock("How descriptions sound", "The agent writes every description to match this.", "writing_style", true),
+    el("h2", { text: "Where to look" }),
+    el("p", { class: "muted small", text: "The agent searches here, and only publishes by itself here." }), chips,
+    owner ? el("div", { class: "inline" }, newArea, el("button", { class: "btn", text: "Add", onclick: () => {
+      const a = newArea.value.trim(); if (a && !areas.includes(a)) { areas.push(a); drawChips(); } newArea.value = ""; } })) : null,
+    el("h2", { text: "Publish by itself at" }),
+    el("p", { class: "muted small", text: "Places the agent is at least this sure about go live without asking. Closures always ask." }),
+    el("div", { class: "inline", style: "align-items:center" }, threshold, el("span", { text: "out of 100" })),
+    owner ? el("div", {}, el("button", { class: "btn yes", text: "Save areas and level", onclick: (e) => {
+      const t = Math.round(Number(threshold.value));
+      if (!(t >= 0 && t <= 100)) return toast("Pick a number from 0 to 100", true);
+      if (!areas.length) return toast("Keep at least one area", true);
+      return saveSettings(() => ({ areas, auto_publish_threshold: t }), "Saved")(e);
+    } })) : null);
+  return out;
+}
+async function runs() {
+  const list = await run(db.from("research_runs").select("*").order("started_at", { ascending: false }).limit(12));
+  const label = { found: "found", published: "added", queued: "asked you", skipped: "skipped", updated: "filled in", ratings: "stars suggested", checked: "rechecked", closures: "closures" };
+  if (!list.length) return [el("p", { class: "muted", text: "No runs yet." })];
+  return list.map((r) => el("div", { class: "box", style: "padding:12px 14px;display:grid;gap:6px" },
+    el("strong", { text: when(r.started_at) + (r.status === "running" ? " · running" : r.status === "failed" ? " · didn't finish" : "") }),
+    el("div", { class: "chips" }, Object.entries(label).filter(([k]) => (r.counts || {})[k] != null).map(([k, l]) => el("span", { class: "pill", text: `${r.counts[k]} ${l}` }))),
+    r.summary ? el("p", { text: r.summary }) : null));
+}
+async function people() {
+  const team = await run(db.from("team_members").select("*").order("added_at"));
+  const newEmail = el("input", { class: "field", type: "email", placeholder: "Their email (the one they sign in with)" });
+  const newRole = el("select", { class: "field", style: "max-width:160px" }, el("option", { value: "reviewer", text: "Reviewer" }), el("option", { value: "owner", text: "Owner" }));
+  return [
+    el("div", { class: "box" }, team.map((p) => el("div", { class: "row" },
+      el("div", { class: "grow" }, el("strong", { text: p.email }),
+        el("div", { class: "muted small", text: (p.role === "owner" ? "Owner" : "Reviewer") + (p.user_id ? "" : " · hasn't signed in yet") })),
+      p.email !== email ? el("button", { class: "btn small", text: "Remove", onclick: async () => { await run(db.from("team_members").delete().eq("email", p.email)); drawPage("people"); } })
+        : el("span", { class: "muted small", text: "You" })))),
+    el("div", { class: "inline" }, newEmail, newRole, el("button", { class: "btn yes", text: "Invite", onclick: async () => {
+      const e = newEmail.value.trim().toLowerCase();
+      if (!e.includes("@")) return toast("That doesn't look like an email", true);
+      await run(db.from("team_members").insert({ email: e, role: newRole.value, added_by: email }));
+      toast(`${e} added. They can sign in at shuckit.app/admin`); drawPage("people");
+    } })),
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// Signing in, and wiring up
+// ---------------------------------------------------------------------------
 $("google").onclick = () => db.auth.signInWithOAuth({ provider: "google", options: { redirectTo: HERE } });
 $("emailForm").onsubmit = async (e) => {
   e.preventDefault();
@@ -226,22 +1187,35 @@ $("emailForm").onsubmit = async (e) => {
   $("emailSent").hidden = false;
 };
 for (const id of ["signOut", "signOut2"]) $(id).onclick = async (e) => { e.preventDefault(); await db.auth.signOut({ scope: "local" }); show(); };
+$("search").addEventListener("input", (e) => {
+  S.query = e.target.value; S.editing = null; S.asking = null;
+  drawViews(); drawCentre();
+});
+$("viewSelect").onchange = (e) => pickView(e.target.value);
+$("addPlace").onclick = () => { S.adding = true; S.sel = null; S.editing = null; draw(); $("add-name")?.focus(); };
 
 async function show() {
   const { data: { session } } = await db.auth.getSession();
   $("signin").hidden = !!session;
   if (!session) { $("app").hidden = true; $("notTeam").hidden = true; return; }
-  email = session.user.email;
-  userId = session.user.id;
+  email = session.user.email; userId = session.user.id;
   const { data } = await db.rpc("join_team");
   role = data;
   $("notTeam").hidden = !!role;
   $("notTeamEmail").textContent = email || "";
   $("app").hidden = !role;
   if (!role) return;
-  $("me").textContent = `${email} · ${role === "owner" ? "Owner" : "Reviewer"}`;
-  for (const b of document.querySelectorAll("[data-owner]")) b.hidden = !isOwner();
-  render();
+  $("me").textContent = `${email} · ${isOwner() ? "Owner" : "Reviewer"}`;
+  if (PAGE[S.view]?.owner && !isOwner()) S.view = "needs";
+  try {
+    await load();
+    const { data: fields } = await db.rpc("admin_editable_fields");
+    if (Array.isArray(fields)) editable = new Set(fields);
+    const { data: last } = await db.from("research_runs").select("*").order("started_at", { ascending: false }).limit(1);
+    lastRun = last?.[0] || null;
+  } catch { return; }
+  if (!S.sel || !byKey.get(S.sel)) S.sel = !isPhone() ? rows()[0]?.key ?? null : null;
+  draw();
 }
 // Supabase re-announces "signed in" whenever you come back to the tab;
 // only an actual change of person rebuilds the page.
@@ -249,323 +1223,6 @@ db.auth.onAuthStateChange((event, session) => {
   const id = session?.user?.id ?? null;
   if (id !== userId) { userId = id; show(); }
 });
-
-$("nav").onclick = (e) => {
-  const b = e.target.closest("button[data-tab]");
-  if (b) { tab = b.dataset.tab; window.scrollTo(0, 0); render(); }
-};
-
-let firstRender = true;
-async function render() {
-  memory.set("tab", tab);
-  const keepY = window.scrollY;
-  for (const b of $("nav").querySelectorAll("button")) b.setAttribute("aria-current", b.dataset.tab === tab ? "page" : "false");
-  const main = $("main");
-  main.replaceChildren(el("p", { class: "muted", text: "Loading…" }));
-  const views = { review, week, decided, rules, settings, people };
-  try {
-    main.replaceChildren(...await views[tab]());
-    const opened = main.querySelector(".card.opened");
-    if (firstRender && opened) opened.scrollIntoView({ block: "center" });
-    else window.scrollTo(0, keepY);
-    firstRender = false;
-  }
-  catch (error) { main.replaceChildren(el("div", { class: "notice error", text: "Couldn't load: " + error.message })); }
-  updateCount();
-}
-async function updateCount() {
-  const [{ count: a }, { count: b }] = await Promise.all([
-    db.from("research_candidates").select("id", { count: "exact", head: true }).eq("status", "queued"),
-    db.from("shack_change_proposals").select("id", { count: "exact", head: true }).eq("status", "queued"),
-  ]);
-  const n = (a || 0) + (b || 0);
-  $("reviewCount").textContent = n; $("reviewCount").hidden = !n;
-}
-
-// --- Review: one decision per card ---
-function candidateCard(c, buttons) {
-  const missing = Array.isArray(c.missing) ? c.missing : [];
-  const evidence = Array.isArray(c.evidence) ? c.evidence : [];
-  const parts = c.confidence_parts || {};
-  const isOpened = memory.get("opened") === c.id;
-  const card = el("article", { class: "card" + (isOpened ? " opened" : ""), "data-id": c.id },
-    isOpened ? el("span", { class: "opened-label", text: "Opened" }) : null,
-    el("h3", { text: c.name }),
-    el("div", { class: "meta", text: [KIND[c.kind] || "Kind not known", c.town, c.area].filter(Boolean).join(" · ") }),
-    el("div", { class: "pills" },
-      scorePill(c.confidence),
-      c.suggestion_id ? el("span", { class: "pill blue", text: "Submitted in the app" }) : null,
-      c.decided_by && c.status !== "queued" ? el("span", { class: "pill", text: `${c.decided_by}, ${when(c.decided_at)}` }) : null),
-    c.reasoning ? el("p", { class: "why", text: c.reasoning }) : null,
-    missing.length ? el("div", { class: "missing" }, el("strong", { text: "Missing: " }),
-      missing.map((m) => `${m.field}${m.why ? " (" + m.why + ")" : ""}`).join("; ")) : null,
-    el("div", { class: "links" },
-      link("Open in Google Maps ↗", c.google_url) || el("span", { class: "muted", text: "No Google Maps link" }),
-      link("Website ↗", c.website_url), link("Instagram ↗", c.instagram_url)),
-    c.status === "queued" || c.status === "draft"
-      ? el("div", { class: "rating-row" },
-          (c._rating = ratingPicker(c.suggested_rating)),
-          el("p", { class: "notes", text: c.rating_notes
-            ? "Suggested: " + c.rating_notes
-            : "No suggestion yet: pick one, or leave it with no stars." }))
-      : null,
-    el("div", { class: "actions" }, buttons),
-    el("details", {},
-      el("summary", { text: "Evidence and score" }),
-      el("p", { class: "muted", text: `Right business ${parts.identity ?? "–"}/40 · Trading ${parts.trading ?? "–"}/25 · Fits the rules ${parts.fits ?? "–"}/25 · Location ${parts.location ?? "–"}/10` }),
-      evidence.length ? el("ul", { class: "evidence" }, evidence.map((e) =>
-        el("li", {}, el("strong", { text: (e.source || "Source") + ": " }), e.says || "", " ",
-          link(e.seen_on ? `(${e.seen_on})` : "(link)", e.url)))) : el("p", { class: "muted", text: "No evidence recorded." }),
-      c.address_lines?.length || c.postcode ? el("p", { text: [...(c.address_lines || []), c.postcode].filter(Boolean).join(", ") }) : null));
-  // Opening any link on a card marks it, so you can find it again.
-  card.addEventListener("click", (e) => {
-    if (!e.target.closest("a")) return;
-    memory.set("opened", c.id);
-    for (const other of document.querySelectorAll(".card.opened")) {
-      other.classList.remove("opened");
-      other.querySelector(".opened-label")?.remove();
-    }
-    card.classList.add("opened");
-    card.prepend(el("span", { class: "opened-label", text: "Opened" }));
-  });
-  return card;
-}
-function decideButtons(c) {
-  const act = (decision, label) => async (e) => {
-    e.target.disabled = true;
-    try {
-      await run(db.rpc("decide_candidate", { p_id: c.id, p_decision: decision, p_rating: pickedRating(c._rating) }));
-      toast(`${c.name}: ${label}`);
-      render();
-    } catch { e.target.disabled = false; }
-  };
-  const all = {
-    publish: el("button", { class: "btn go", text: "Publish", onclick: act("publish", "published") }),
-    draft: el("button", { class: "btn", text: "Keep as draft", onclick: act("draft", "kept as a draft") }),
-    decline: el("button", { class: "btn stop", text: "Not for Shuck it", onclick: act("decline", "not for Shuck it") }),
-    review: el("button", { class: "btn", text: "Back to review", onclick: act("review", "back in the review queue") }),
-  };
-  return { queued: ["publish", "draft", "decline"], draft: ["publish", "decline"],
-           declined: ["publish", "review"], published: ["draft"] }[c.status].map((k) => all[k]);
-}
-async function review() {
-  const [proposals, candidates] = await Promise.all([
-    run(db.from("shack_change_proposals").select("*, shacks(name, town, kind, google_place_id, website_url)").eq("status", "queued").order("created_at")),
-    run(db.from("research_candidates").select("*").eq("status", "queued").order("confidence", { ascending: false, nullsFirst: false })),
-  ]);
-  const out = [];
-  if (proposals.length) {
-    out.push(el("h2", { text: "Changes to confirm" }));
-    for (const p of proposals) {
-      const isRating = p.change === "starting_rating";
-      const isKind = p.change === "change_kind";
-      const picker = isRating ? ratingPicker(p.rating) : null;
-      const decide = (accept) => async (e) => {
-        e.target.disabled = true;
-        if (accept && isRating && pickedRating(picker) == null) {
-          e.target.disabled = false;
-          return toast("Pick a rating first, or tap Not now", true);
-        }
-        try {
-          await run(db.rpc("decide_change", { p_id: p.id, p_accept: accept, p_rating: isRating ? pickedRating(picker) : null }));
-          toast("Done"); render();
-        } catch { e.target.disabled = false; }
-      };
-      const dates = [p.closed_from && "from " + when(p.closed_from), p.reopens_on && "reopens " + when(p.reopens_on)].filter(Boolean).join(", ");
-      out.push(el("article", { class: "card" },
-        el("h3", { text: p.shacks?.name || "A place" }),
-        el("div", { class: "meta", text: [p.shacks?.town,
-          isKind ? `${KIND[p.shacks?.kind] || "Now"} → ${KIND[p.new_kind] || p.new_kind}` : CHANGE[p.change],
-          dates].filter(Boolean).join(" · ") }),
-        isRating ? null : el("div", { class: "pills" }, scorePill(p.confidence)),
-        p.reasoning ? el("p", { class: "why", text: p.reasoning }) : null,
-        // To see more before deciding (Jon, 2026-11-19). Opening a link is free.
-        el("div", { class: "links" },
-          link("Open in Google Maps ↗", p.shacks?.google_place_id
-            ? "https://www.google.com/maps/place/?q=place_id:" + encodeURIComponent(p.shacks.google_place_id)
-            : "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent([p.shacks?.name, p.shacks?.town].filter(Boolean).join(" "))),
-          link("Website ↗", p.shacks?.website_url)),
-        isRating ? el("div", { class: "rating-row" }, picker) : null,
-        el("div", { class: "actions" },
-          el("button", { class: "btn primary",
-            text: isRating ? "Use this rating" : isKind ? "Make it a " + (KIND[p.new_kind] || "new kind").toLowerCase() : p.change === "reopened" ? "Mark it open" : "Close it",
-            onclick: decide(true) }),
-          el("button", { class: "btn",
-            text: isRating ? "Not now" : isKind ? "Keep as " + (KIND[p.shacks?.kind] || "it is").toLowerCase() : p.change === "reopened" ? "Keep it closed" : "Keep it open",
-            onclick: decide(false) })),
-        el("details", {}, el("summary", { text: "Evidence" }),
-          el("ul", { class: "evidence" }, (p.evidence || []).map((e) =>
-            el("li", {}, el("strong", { text: (e.source || "Source") + ": " }), e.says || "", " ", link("(link)", e.url)))))));
-    }
-  }
-  out.push(el("h2", { text: "New places" }));
-  if (!candidates.length) out.push(el("div", { class: "empty", text: "Nothing to review. Nice." }));
-  for (const c of candidates) out.push(candidateCard(c, decideButtons(c)));
-  return out;
-}
-
-// --- This week ---
-async function week() {
-  const runs = await run(db.from("research_runs").select("*").order("started_at", { ascending: false }).limit(8));
-  const since = new Date(Date.now() - 7 * 864e5).toISOString();
-  const published = await run(db.from("research_candidates").select("*").eq("status", "published").gte("decided_at", since).order("decided_at", { ascending: false }));
-  const out = [el("h2", { text: "Weekly runs" })];
-  if (!runs.length) out.push(el("div", { class: "empty", text: "No runs yet." }));
-  for (const r of runs) {
-    const c = r.counts || {};
-    const label = { found: "found", published: "published", queued: "to review", skipped: "skipped", updated: "gaps filled", ratings: "ratings suggested", checked: "rechecked", closures: "closures" };
-    out.push(el("article", { class: "card" },
-      el("h3", { text: when(r.started_at) }),
-      el("div", { class: "meta", text: r.status === "running" ? "Running…" : r.status === "failed" ? "Didn't finish" : "Finished " + when(r.finished_at) }),
-      el("div", { class: "pills" }, Object.entries(label).filter(([k]) => c[k] != null).map(([k, l]) => el("span", { class: "pill", text: `${c[k]} ${l}` }))),
-      r.summary ? el("p", { class: "why", text: r.summary }) : null));
-  }
-  out.push(el("h2", { text: "Published in the last 7 days" }));
-  if (!published.length) out.push(el("div", { class: "empty", text: "None yet." }));
-  for (const c of published) out.push(candidateCard(c, decideButtons(c)));
-  return out;
-}
-
-// --- Decided: drafts and "Not for Shuck it", where you can change your mind ---
-async function decided() {
-  const [drafts, declined] = await Promise.all([
-    run(db.from("research_candidates").select("*").eq("status", "draft").order("decided_at", { ascending: false })),
-    run(db.from("research_candidates").select("*").eq("status", "declined").order("decided_at", { ascending: false })),
-  ]);
-  const out = [el("h2", { text: "Kept as drafts" })];
-  if (!drafts.length) out.push(el("div", { class: "empty", text: "No drafts." }));
-  for (const c of drafts) out.push(candidateCard(c, decideButtons(c)));
-  out.push(el("h2", { text: "Not for Shuck it" }),
-    el("p", { class: "muted small", text: "Never suggested again, by the agent or the app. Change your mind any time." }));
-  if (!declined.length) out.push(el("div", { class: "empty", text: "Nothing declined yet." }));
-  for (const c of declined) out.push(candidateCard(c, decideButtons(c)));
-  return out;
-}
-
-// --- Rules: what counts, the three kinds with their examples, and the writing style ---
-async function rules() {
-  const [s] = await run(db.from("research_settings").select("shack_rules, writing_style, shack_definition, oyster_bar_definition, restaurant_definition, updated_at, updated_by"));
-  const examples = await run(db.from("research_examples").select("*").order("created_at"));
-  const owner = isOwner();
-  const save = (fields, done) => async () => {
-    await run(db.from("research_settings").update({ ...fields(), updated_at: new Date().toISOString(), updated_by: email }).eq("id", true));
-    toast(done);
-  };
-  const exampleList = (list) => {
-    const box = el("div", { class: "card" });
-    if (!list.length) box.append(el("p", { class: "muted", text: "None yet." }));
-    for (const x of list) box.append(el("div", { class: "row" },
-      el("div", { class: "grow" }, el("strong", { text: x.name }), x.note ? el("div", { class: "muted small", text: x.note }) : null),
-      link("Maps ↗", x.google_url),
-      owner ? el("button", { class: "btn", text: "Remove", onclick: async () => {
-        await run(db.from("research_examples").delete().eq("id", x.id)); render(); } }) : null));
-    return box;
-  };
-  const addExample = (verdict, kind) => {
-    const name = el("input", { class: "field", placeholder: "Name" });
-    const url = el("input", { class: "field", placeholder: "Google Maps link" });
-    const note = el("input", { class: "field", placeholder: "Why (optional)" });
-    return el("div", { class: "inline" }, name, url, note, el("button", { class: "btn primary", text: "Add", onclick: async () => {
-      if (!name.value.trim()) return toast("Add a name first", true);
-      await run(db.from("research_examples").insert({ verdict, kind, name: name.value.trim(), google_url: url.value.trim() || null, note: note.value.trim() || null, created_by: email }));
-      render();
-    } }));
-  };
-
-  const text = el("textarea", { class: "field", disabled: !owner });
-  text.value = s.shack_rules;
-  const out = [
-    el("h2", { text: "What counts" }),
-    el("p", { class: "muted small", text: "The agent reads all of this page every week. Plain words are best." + (s.updated_by ? ` Last changed by ${s.updated_by}, ${when(s.updated_at)}.` : "") }),
-    text,
-  ];
-  if (owner) out.push(el("p", {}, el("button", { class: "btn primary", text: "Save rules", onclick: save(() => ({ shack_rules: text.value }), "Rules saved") })));
-
-  // One section per kind: what it is, and places that are exactly that kind.
-  for (const k of KINDS) {
-    const def = el("textarea", { class: "field", disabled: !owner });
-    def.value = s[k.column];
-    out.push(el("h2", { text: k.title }),
-      el("p", { class: "muted small", text: `What makes a place one of the ${k.title.toLowerCase()}. The examples below teach the agent best.` }),
-      def);
-    if (owner) out.push(el("p", {}, el("button", { class: "btn primary", text: "Save definition", onclick: save(() => ({ [k.column]: def.value }), k.title + " saved") })));
-    out.push(el("h3", { text: "Examples: exactly right" }),
-      exampleList(examples.filter((x) => x.verdict === "include" && (x.kind || "seafood_shack") === k.kind)));
-    if (owner) out.push(addExample("include", k.kind));
-  }
-
-  out.push(el("h2", { text: "Examples: not for Shuck it" }),
-    exampleList(examples.filter((x) => x.verdict === "exclude")));
-  if (owner) out.push(addExample("exclude", null));
-
-  // How descriptions sound (Jon 2026-11-20): his guide and examples.
-  const style = el("textarea", { class: "field tall", disabled: !owner });
-  style.value = s.writing_style;
-  out.push(el("h2", { text: "How descriptions sound" }),
-    el("p", { class: "muted small", text: "The agent writes every description to match this. Example descriptions teach it best." }),
-    style);
-  if (owner) out.push(el("p", {}, el("button", { class: "btn primary", text: "Save writing style", onclick: save(() => ({ writing_style: style.value }), "Writing style saved") })));
-  return out;
-}
-
-// --- Settings: areas and the auto-publish threshold ---
-async function settings() {
-  const [s] = await run(db.from("research_settings").select("areas, auto_publish_threshold"));
-  const owner = isOwner();
-  let areas = [...s.areas];
-  const chips = el("div", { class: "chips" });
-  const drawChips = () => chips.replaceChildren(...areas.map((a) => el("span", { class: "chip" }, a,
-    owner ? el("button", { "aria-label": "Remove " + a, text: "×", onclick: () => { areas = areas.filter((x) => x !== a); drawChips(); } }) : null)));
-  drawChips();
-  const newArea = el("input", { class: "field", placeholder: "Add an area, e.g. Essex" });
-  const threshold = el("input", { class: "field", type: "number", min: 0, max: 100, value: s.auto_publish_threshold, disabled: !owner, style: "max-width:140px" });
-  const out = [
-    el("h2", { text: "Where to look" }),
-    el("p", { class: "muted small", text: "Counties and London. The agent only searches here, and only auto-publishes places here." }),
-    chips,
-  ];
-  if (owner) out.push(el("div", { class: "inline" }, newArea, el("button", { class: "btn", text: "Add", onclick: () => {
-    const a = newArea.value.trim(); if (a && !areas.includes(a)) { areas.push(a); drawChips(); } newArea.value = "";
-  } })));
-  out.push(el("h2", { text: "Publish automatically at" }),
-    el("p", { class: "muted small", text: "Places scoring this or more go live without asking. Lower scores wait for review. Closures always wait." }),
-    el("div", { class: "inline", style: "align-items:center" }, threshold, el("span", { text: "/ 100" })));
-  if (owner) out.push(el("p", { style: "margin-top:24px" }, el("button", { class: "btn primary", text: "Save settings", onclick: async () => {
-    const t = Math.round(Number(threshold.value));
-    if (!(t >= 0 && t <= 100)) return toast("The threshold must be 0 to 100", true);
-    if (!areas.length) return toast("Keep at least one area", true);
-    await run(db.from("research_settings").update({ areas, auto_publish_threshold: t, updated_at: new Date().toISOString(), updated_by: email }).eq("id", true));
-    toast("Settings saved");
-  } })));
-  return out;
-}
-
-// --- People (owners only) ---
-async function people() {
-  if (!isOwner()) return [el("div", { class: "empty", text: "Only owners can manage people." })];
-  const team = await run(db.from("team_members").select("*").order("added_at"));
-  const box = el("div", { class: "card" });
-  for (const p of team) box.append(el("div", { class: "row" },
-    el("div", { class: "grow" }, el("strong", { text: p.email }),
-      el("div", { class: "muted small", text: (p.role === "owner" ? "Owner" : "Reviewer") + (p.user_id ? "" : " · hasn't signed in yet") })),
-    p.email !== email ? el("button", { class: "btn", text: "Remove", onclick: async () => {
-      await run(db.from("team_members").delete().eq("email", p.email)); render(); } }) : el("span", { class: "muted small", text: "You" })));
-  const newEmail = el("input", { class: "field", type: "email", placeholder: "Their email (the one they sign in with)" });
-  const newRole = el("select", { class: "field", style: "max-width:180px" },
-    el("option", { value: "reviewer", text: "Reviewer" }), el("option", { value: "owner", text: "Owner" }));
-  return [
-    el("h2", { text: "People" }),
-    el("p", { class: "muted small", text: "Reviewers can publish, keep as draft or decline. Owners can also change the rules, settings and people." }),
-    box,
-    el("div", { class: "inline" }, newEmail, newRole, el("button", { class: "btn primary", text: "Add", onclick: async () => {
-      const e = newEmail.value.trim().toLowerCase();
-      if (!e.includes("@")) return toast("That doesn't look like an email", true);
-      await run(db.from("team_members").insert({ email: e, role: newRole.value, added_by: email }));
-      toast(`${e} added. They can sign in at shuckit.app/admin`); render();
-    } })),
-  ];
-}
-
 show();
 </script>
 </body>

@@ -37,6 +37,7 @@
   .btn.link { border: 0; background: none; padding: 4px; color: var(--ink2); font-weight: 500; text-decoration: underline; }
   .btn:disabled { opacity: .5; cursor: default; }
   .field { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface); }
+  select.field.compact { width: auto; padding: 4px 6px; border-radius: 6px; }
   textarea.field { min-height: 120px; resize: vertical; line-height: 1.45; }
   textarea.field.tall { min-height: 420px; }
   .pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--soft); color: var(--ink2); white-space: nowrap; }
@@ -268,8 +269,8 @@ const memory = {
 const isPhone = () => matchMedia("(max-width: 900px)").matches;
 const stars = (n) => n == null ? "No stars" : "★ " + Number(n).toFixed(1).replace(/\.0$/, "");
 function starSelect(value, id) {
-  const s = el("select", { class: "field", id, style: "width:auto" },
-    el("option", { value: "", text: "No stars yet" }),
+  const s = el("select", { class: "field compact", id, "aria-label": "Starting stars" },
+    el("option", { value: "", text: "None" }),
     STAR_OPTIONS.map((n) => el("option", { value: String(n), text: stars(n) })),
     // Older starting ratings can be between halves (e.g. 4.7): keep showing them.
     value != null && !STAR_OPTIONS.includes(Number(value)) ? el("option", { value: String(Number(value)), text: stars(value) + " (current)" }) : null);
@@ -708,7 +709,7 @@ function candidateQuestion(r) {
     el("div", { class: "linkrow" }, link("Google Maps ↗", c.google_url || mapsUrl(c.google_place_id, c.name, c.town)),
       link("Website ↗", c.website_url), link("Instagram ↗", c.instagram_url)),
     evidenceDetails(c),
-    el("div", { class: "chips" }, el("span", { class: "small", text: "Starting stars" }), rating),
+    el("label", { class: "chips", for: "candStars" }, el("span", { class: "small", text: "Starting stars" }), rating),
     c.rating_notes ? el("p", { class: "small muted", text: "Agent's suggestion: " + c.rating_notes } ) : null);
   if (S.asking === c.id) {
     box.append(reasonPicker(r));
@@ -785,7 +786,7 @@ function changeQuestion(r, p) {
     p.reasoning ? el("p", { text: p.reasoning }) : null,
     el("div", { class: "linkrow" }, link("Google Maps ↗", mapsUrl(r.shack.google_place_id, name, r.shack.town)), link("Website ↗", r.shack.website_url), link("Instagram ↗", r.shack.instagram_url)),
     p.evidence?.length ? evidenceDetails(p) : null,
-    rating ? el("div", { class: "chips" }, el("span", { class: "small", text: "Stars" }), rating) : null,
+    rating ? el("label", { class: "chips", for: "propStars" }, el("span", { class: "small", text: "Stars" }), rating) : null,
     el("div", { class: "chips" },
       el("button", { class: "btn yes", text: q[1], onclick: (e) => {
         if (rating && picked(rating) == null) return toast("Pick some stars first, or choose No stars yet", true);

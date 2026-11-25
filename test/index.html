@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Not linked from the home page; sent to testers only. Kept out of search results. -->
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="/assets/favicon.png">
+<link rel="apple-touch-icon" href="/assets/favicon.png">
+<title>You're invited to test Shuck it</title>
+<meta name="description" content="Try Shuck it before it's in the App Store: the iPhone app for finding seafood shacks worth the trip.">
+<!-- The preview card when the link is sent in Messages, WhatsApp and so on. -->
+<meta property="og:title" content="You're invited to test Shuck it">
+<meta property="og:description" content="Try the app for finding seafood shacks worth the trip, before it's in the App Store.">
+<meta property="og:image" content="https://shuckit.app/assets/favicon.png">
+<meta property="og:url" content="https://shuckit.app/test/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+  /* Figma "Shuck it" styles, as on the home page. */
+  :root {
+    --black: #1E1E1E;
+    --black-50: rgba(30, 30, 30, 0.5);
+    --black-10: rgba(30, 30, 30, 0.1);
+    --black-75: rgba(30, 30, 30, 0.75);
+    --yellow: #FFD801;
+    --white: #FFFFFF;
+    --background-grey: #F2F0EB;
+    --gap: 16px;
+    --pad: 40px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--black);
+    color: var(--black);
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    font-variation-settings: "opsz" 14;
+  }
+  a { color: inherit; }
+  p { margin: 0; }
+
+  /* The home page's 50-50 split: yellow on the left, stays put while the
+     grey side scrolls. */
+  main {
+    display: flex;
+    gap: var(--gap);
+    padding: var(--gap);
+    align-items: flex-start;
+  }
+  .panel { flex: 1 1 0; min-width: 0; padding: var(--pad); }
+
+  .invite {
+    position: sticky;
+    top: var(--gap);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 48px;
+    min-height: calc(100svh - 2 * var(--gap));
+    background: var(--yellow);
+  }
+  .logo { display: block; width: 166px; height: auto; }
+  h1 {
+    margin: 0;
+    font-weight: 500;
+    font-size: clamp(48px, 6.3vw, 96px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .invite .lede { margin-top: 24px; max-width: 30em; }
+  .cta { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+  .button {
+    display: inline-block;
+    padding: 20px 28px;
+    border-radius: 1000px;
+    background: var(--black);
+    color: var(--white);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .button.light { background: var(--white); color: var(--black); }
+  .small { font-size: 15px; color: var(--black-75); max-width: 26em; }
+
+  /* The details: Heading 2 sections, Heading 3 items, 80 between sections. */
+  .details { background: var(--background-grey); }
+  .details section + section { margin-top: 80px; }
+  h2 {
+    margin: 0 0 32px;
+    font-weight: 500;
+    font-size: 32px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  h3 {
+    margin: 0 0 8px;
+    font-weight: 600;
+    font-size: 17px;
+    line-height: 1.3;
+  }
+  .items { display: flex; flex-direction: column; gap: 32px; }
+  .section-intro { margin: -16px 0 32px; }
+
+  /* Feedback questions are numbered, so people can reply "3: yes". */
+  ol.questions {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: q;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  ol.questions li {
+    counter-increment: q;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    align-items: start;
+  }
+  ol.questions li::before {
+    content: counter(q);
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    margin-top: -3px;
+    border-radius: 1000px;
+    background: var(--yellow);
+    font-weight: 600;
+    font-size: 15px;
+  }
+  ol.questions h3 { margin-bottom: 4px; }
+
+  .how { display: flex; flex-direction: column; gap: 16px; }
+  .how h2 { margin: 0; }
+  .how ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
+
+  /* Sign-off: two lines, 80 apart (Figma). */
+  .signoff { margin-top: 80px; display: flex; flex-direction: column; align-items: flex-start; gap: 80px; }
+  .signoff .muted { color: var(--black-50); }
+  .signoff a { font-weight: 600; text-decoration: none; }
+
+  /* Phones: the invite comes first at its own height, then the details. */
+  @media (max-width: 800px) {
+    :root { --pad: 24px; }
+    main { flex-direction: column; align-items: stretch; }
+    .panel { flex: none; }
+    .invite { position: static; min-height: 0; gap: 80px; }
+    .cta { gap: 24px; }
+    h1 { font-size: 48px; }
+    h2 { margin-bottom: 24px; }
+    .section-intro { margin: -8px 0 24px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <section class="panel invite" aria-labelledby="invite-title">
+    <img class="logo" src="/assets/logo.svg" alt="Shuck it" width="166" height="34">
+    <div>
+      <h1 id="invite-title">You’re invited to test Shuck it</h1>
+      <p class="lede">Shuck it is an iPhone app for finding seafood shacks worth the trip. It’s not in the App Store yet, and I’d love you to try it first and tell me what you think.</p>
+    </div>
+    <div class="cta">
+      <a class="button" href="https://testflight.apple.com/join/h4yAxQAh">Get the test app</a>
+      <p class="small">Opens TestFlight, Apple’s app for trying apps before they launch. If you don’t have it yet, the link shows you how to get it. Needs an iPhone on iOS 18 or later.</p>
+    </div>
+  </section>
+
+  <div class="panel details">
+    <section aria-labelledby="know">
+      <h2 id="know">Things to know</h2>
+      <div class="items">
+        <div>
+          <h3>Yes, it’s bold</h3>
+          <p>The bright yellow, the chunky icons and the big type are on purpose. I wanted it to feel like a day at the seaside, not another grey map app. Tell me if it works for you or if it’s too much.</p>
+        </div>
+        <div>
+          <h3>London and the South East, for now</h3>
+          <p>There are about 100 places so far, mostly in London and along the coast from Kent to Sussex. If you’re further afield the map will look a bit empty. More areas will follow if it’s worth carrying on.</p>
+        </div>
+        <div>
+          <h3>Photos come from Google, so some won’t load</h3>
+          <p>Google charges for its photos, so I’ve capped how many the app can show each day. If you see “No image”, that’s why, not a bug. Everything else, like descriptions, opening hours and which places are on the map, comes from an AI research agent I built. I review what it finds each week.</p>
+        </div>
+        <div>
+          <h3>What is a seafood shack, exactly?</h3>
+          <p>I’m still working that out. A hut on a harbour, sure, but what about a fishmonger with a few stools, or an oyster bar? For now the map shows shacks, oyster bars and seafood restaurants, and Filters lets you choose which ones you see.</p>
+        </div>
+        <div>
+          <h3>The ratings are a starting point</h3>
+          <p>Each place starts with my own rating so the map isn’t empty. Your ratings move it up or down. There are no Google reviews in the app.</p>
+        </div>
+        <div>
+          <h3>You don’t need an account to look around</h3>
+          <p>Browse the map, list and search signed out. Sign in with Apple or Google to like, save, check off and rate places, and to use Filters. You can delete your account at any time in Settings.</p>
+        </div>
+        <div>
+          <h3>Know a place that’s missing?</h3>
+          <p>Go to Account, tap Submit a shack and paste a Google Maps link. I read every one.</p>
+        </div>
+        <div>
+          <h3>It’s a test version</h3>
+          <p>Things will break, and some details will be wrong. TestFlight will offer updates as I fix things, so keep it updated.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="feedback">
+      <h2 id="feedback">Feedback I’m looking for</h2>
+      <p class="section-intro">Anything and everything, honestly. Short answers are great. These are the things I’m most unsure about:</p>
+      <ol class="questions">
+        <li><div>
+          <h3>Is it any good?</h3>
+          <p>Would you actually use it to plan a day out? Is it worth putting on the App Store and spending a little money so the photos always load?</p>
+        </div></li>
+        <li><div>
+          <h3>Filters</h3>
+          <p>Are they useful? What else would you want to filter by? Open now, distance, outdoor seating, dog friendly, something else?</p>
+        </div></li>
+        <li><div>
+          <h3>Catch of the day</h3>
+          <p>The tab at the bottom of the map. Are its groups (Top spots, Shuck it faves, Open now, Top rated) useful, or is it worth having that tab at all?</p>
+        </div></li>
+        <li><div>
+          <h3>Did you ever get lost?</h3>
+          <p>Any moment you weren’t sure where you were, how to get back, or what a button did.</p>
+        </div></li>
+        <li><div>
+          <h3>Anything wrong or missing?</h3>
+          <p>Wrong opening hours, a place that’s closed, a pin in the wrong spot, something that isn’t really a seafood place, or a favourite of yours that isn’t there.</p>
+        </div></li>
+        <li><div>
+          <h3>The look</h3>
+          <p>First impressions of the colours, icons and type. Does it feel like a seafood app?</p>
+        </div></li>
+        <li><div>
+          <h3>The one thing</h3>
+          <p>If you could change one thing about Shuck it, what would it be?</p>
+        </div></li>
+      </ol>
+    </section>
+
+    <section class="how" aria-labelledby="send">
+      <h2 id="send">How to send feedback</h2>
+      <ul>
+        <li><strong>In the app:</strong> take a screenshot, tap it, then tap Share Beta Feedback. You can draw on it and add a note, and it comes straight to me.</li>
+        <li><strong>Or just message me:</strong> <a href="mailto:jondparkinson@gmail.com?subject=Shuck%20it%20feedback">jondparkinson@gmail.com</a>.</li>
+      </ul>
+    </section>
+
+    <section class="how" aria-labelledby="design">
+      <h2 id="design">How I designed it</h2>
+      <p>I’m a Product Designer, not a Developer. I’ve been writing up the decisions behind the app as I go: the look, how the map and cards work, the AI agent, and the trade-offs I made to keep it free to run. You can read more about those decisions here.</p>
+      <p><a class="button light" href="https://jonparkinson.work/work/shuck-it">Read the case study</a></p>
+    </section>
+
+    <footer class="signoff">
+      <span>Thanks for helping. Jon</span>
+      <span class="muted">Made with ❤️ by the sea · <a href="/legal#privacy">Privacy</a></span>
+    </footer>
+  </div>
+</main>
+</body>
+</html>

@@ -205,11 +205,14 @@ const SUPABASE_KEY = "sb_publishable_kQpjpVYBfeEbMc1MvEpSCQ_HMzNmsTl";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const HERE = location.origin + location.pathname;
 
-const KIND = { seafood_shack: "Seafood shack", oyster_bar: "Oyster bar", seafood_restaurant: "Seafood restaurant" };
+const KIND = { seafood_shack: "Seafood shack", oyster_bar: "Oyster bar", seafood_restaurant: "Seafood restaurant", fishmonger: "Fishmonger" };
+// A place can be more than one kind (decision 051): its main kind, then any others.
+const kindsText = (kind, also) => [kind, ...(also || [])].map((k) => KIND[k]).filter(Boolean).join(" + ");
 const KINDS = [
   { kind: "seafood_shack", title: "Seafood shacks", column: "shack_definition" },
   { kind: "oyster_bar", title: "Oyster bars", column: "oyster_bar_definition" },
   { kind: "seafood_restaurant", title: "Seafood restaurants", column: "restaurant_definition" },
+  { kind: "fishmonger", title: "Fishmongers", column: "fishmonger_definition" },
 ];
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -246,9 +249,33 @@ function link(text, url) {
   const href = safeUrl(url);
   return href ? el("a", { href, target: "_blank", rel: "noopener noreferrer", text }) : null;
 }
-function mapsUrl(placeId, name, town) {
+// With no place ID, search by the address too, so a business with several
+// branches opens the right one rather than a list of them all.
+function mapsUrl(placeId, name, town, address) {
   if (placeId) return "https://www.google.com/maps/place/?q=place_id:" + encodeURIComponent(placeId);
-  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent([name, town].filter(Boolean).join(" "));
+  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent([name, address || town].filter(Boolean).join(", "));
+}
+// What a candidate is missing, in plain words, and how to fill it in.
+// Older finds stored just the field name; newer ones {field, why}.
+const MISSING = {
+  opening_hours: ["Opening hours", "add them under Opening hours once it's added (Open now hides places without hours)"],
+  phone: ["Phone", "add it under Phone once it's added"],
+  description: ["Description", "add it under Description once it's added"],
+  position: ["Map pin", "keep it as a draft, add its Postcode, then press \u201cUse postcode\u201d next to Position"],
+  postcode: ["Postcode", "add it under Address once it's added"],
+  address: ["Address", "add it under Address once it's added"],
+  website_url: ["Website", "add it under Website once it's added"],
+  google_place_id: ["Google place", "add it under Google Place ID once it's added"],
+};
+function missingList(c) {
+  const items = (Array.isArray(c.missing) ? c.missing : []).map((m) => typeof m === "string" ? { field: m } : m || {});
+  if (!items.length) return null;
+  return el("div", { class: "small" }, el("strong", { text: "Still to find:" }),
+    el("ul", {}, items.map((m) => {
+      const [label, how] = MISSING[m.field] || [String(m.field || "Something").replace(/_/g, " "), null];
+      return el("li", { text: label + (m.why ? ` \u2014 ${m.why}` : "") + (how ? `. To add: ${how}.` : "") });
+    })),
+    el("p", { class: "muted", text: "None of these stops you adding it. The weekly agent also looks for them." }));
 }
 function when(iso) {
   if (!iso) return "";
@@ -333,7 +360,7 @@ const isOwner = () => role === "owner";
 
 async function load() {
   [shacks, cands, props] = await Promise.all([
-    run(db.from("shacks").select("id, slug, name, kind, town, address_lines, postcode, latitude, longitude, description, website_url, instagram_url, phone, opening_hours, seasonal_note, hours_checked_on, google_place_id, is_published, fave_rank, base_rating, rating_average, rating_count, closure, closed_from, reopens_on").order("name")),
+    run(db.from("shacks").select("id, slug, name, kind, also_kinds, town, address_lines, postcode, latitude, longitude, description, website_url, instagram_url, phone, opening_hours, seasonal_note, hours_checked_on, google_place_id, is_published, fave_rank, base_rating, rating_average, rating_count, closure, closed_from, reopens_on").order("name")),
     run(db.from("research_candidates").select("*").order("created_at")),
     run(db.from("shack_change_proposals").select("*").eq("status", "queued").order("created_at")),
   ]);
@@ -531,7 +558,7 @@ function drawList(list) {
       onkeydown: (e) => { if (e.key === "Enter") select(r.key); } },
       el("td", {}, el("div", { class: "nm", text: v(r, "name") }), el("div", { class: "muted small", text: v(r, "town") || "" }),
         faves ? null : el("div", { class: "chips phone-only" }, statusPill(r), flags(r))),
-      el("td", { class: "kindcol", text: KIND[v(r, "kind")] || "" }),
+      el("td", { class: "kindcol", text: kindsText(v(r, "kind"), v(r, "also_kinds")) }),
       el("td", { class: faves ? "" : "statuscol" }, statusPill(r)),
       el("td", { class: faves ? "" : "flagcol" }, faves ? faveButtons(list, i) : el("div", { class: "chips" }, flags(r))))))));
 }
@@ -686,7 +713,7 @@ function drawPanel() {
   const kids = [
     el("button", { class: "btn back", text: "‹ Back", onclick: () => { S.sel = null; S.editing = null; draw(); } }),
     el("div", { style: "display:grid;gap:6px" }, el("h4", { text: v(r, "name") }),
-      el("div", { class: "chips" }, el("span", { class: "muted", text: [v(r, "town"), KIND[v(r, "kind")]].filter(Boolean).join(" · ") }), statusPill(r))),
+      el("div", { class: "chips" }, el("span", { class: "muted", text: [v(r, "town"), kindsText(v(r, "kind"), v(r, "also_kinds"))].filter(Boolean).join(" · ") }), statusPill(r))),
   ];
   if (r.cand?.status === "queued") kids.push(candidateQuestion(r));
   for (const p of r.props) kids.push(changeQuestion(r, p));
@@ -700,16 +727,17 @@ function drawPanel() {
 // "Add X to the map?"
 function candidateQuestion(r) {
   const c = r.cand;
-  const missing = Array.isArray(c.missing) ? c.missing : [];
+  const address = [...(c.address_lines || []), c.postcode, c.town].filter(Boolean).join(", ");
   const rating = starSelect(c.suggested_rating, "candStars");
   const box = el("div", { class: "ask" },
     el("p", { class: "eyebrow", text: (c.suggestion_id ? "Sent in from the app" : "Found by the agent") + (c.decided_by && c.status === "queued" && c.decided_at ? " · back for review" : "") }),
     el("p", { class: "q", text: `Add ${c.name} to the map?` }),
-    el("p", { class: "small", text: [KIND[c.kind] || "Kind not known", [c.town, c.area].filter(Boolean).join(", "),
+    el("p", { class: "small", text: [kindsText(c.kind, c.also_kinds) || "Kind not known", [c.town, c.area].filter(Boolean).join(", "),
       c.confidence != null ? `${c.confidence}/100 sure` : null].filter(Boolean).join(" · ") }),
     c.reasoning ? el("p", { text: c.reasoning }) : null,
-    missing.length ? el("p", { class: "small" }, el("strong", { text: "Missing: " }), missing.map((m) => m.field + (m.why ? ` (${m.why})` : "")).join("; ")) : null,
-    el("div", { class: "linkrow" }, link("Google Maps ↗", c.google_url || mapsUrl(c.google_place_id, c.name, c.town)),
+    address ? el("p", { class: "small", text: "Address: " + address }) : null,
+    missingList(c),
+    el("div", { class: "linkrow" }, link("Google Maps ↗", c.google_url || mapsUrl(c.google_place_id, c.name, c.town, address)),
       link("Website ↗", c.website_url), link("Instagram ↗", c.instagram_url)),
     evidenceDetails(c),
     el("label", { class: "chips", for: "candStars" }, el("span", { class: "small", text: "Starting stars" }), rating),
@@ -848,7 +876,7 @@ function placeSections(r) {
 function display(r, f) {
   const val = r.shack[f.key];
   switch (f.type) {
-    case "kind": return KIND[val] || "";
+    case "kind": return kindsText(val, r.shack.also_kinds);
     case "stars": return val == null ? "" : stars(val);
     case "lines": return (val || []).join("\n");
     case "hours": return hoursSummary(val) || "";
@@ -873,8 +901,18 @@ function field(r, f) {
   const s = r.shack;
   let editor, read;
   if (f.type === "kind") {
-    editor = el("select", { class: "field", id: "edit-kind" }, Object.entries(KIND).map(([k, l]) => el("option", { value: k, text: l })));
-    editor.value = s.kind; read = () => ({ kind: editor.value });
+    const main = el("select", { class: "field", id: "edit-kind" }, Object.entries(KIND).map(([k, l]) => el("option", { value: k, text: l })));
+    main.value = s.kind;
+    const ticks = Object.entries(KIND).map(([k, l]) => {
+      const box = el("input", { type: "checkbox", id: "edit-also-" + k, value: k });
+      box.checked = (s.also_kinds || []).includes(k);
+      return { k, box, row: el("label", { for: "edit-also-" + k, style: "display:flex;gap:8px;align-items:center" }, box, el("span", { text: l })) };
+    });
+    const hideMain = () => ticks.forEach((t) => { t.row.style.display = t.k === main.value ? "none" : "flex"; });
+    main.addEventListener("change", hideMain); hideMain();
+    editor = el("div", { style: "display:grid;gap:6px" }, main,
+      el("p", { class: "small muted", text: "Also a… (it shows in Filters for each one ticked)" }), ...ticks.map((t) => t.row));
+    read = () => ({ kind: main.value, also_kinds: ticks.filter((t) => t.box.checked && t.k !== main.value).map((t) => t.k) });
   } else if (f.type === "stars") {
     editor = starSelect(s.base_rating, "edit-stars"); read = () => ({ base_rating: picked(editor) });
   } else if (f.type === "lines" || f.type === "textarea") {
@@ -985,7 +1023,7 @@ function faveButtons(list, i) {
 
 // History: every change to the place, by people and the agent, with Undo
 // for the latest change to each field.
-const FIELD_LABEL = { name: "Name", kind: "Kind", town: "Town", address_lines: "Address", postcode: "Postcode", description: "Description",
+const FIELD_LABEL = { name: "Name", kind: "Kind", also_kinds: "Other kinds", town: "Town", address_lines: "Address", postcode: "Postcode", description: "Description",
   website_url: "Website", instagram_url: "Instagram", phone: "Phone", opening_hours: "Opening hours", seasonal_note: "Seasonal note",
   hours_checked_on: "Hours checked", latitude: "Position", longitude: "Position", google_place_id: "Google Place ID",
   is_published: "On the map", fave_rank: "Fave", base_rating: "Starting stars", closure: "Closure", closed_from: "Closed from", reopens_on: "Reopens" };
@@ -1001,6 +1039,7 @@ function describe(row) {
   if (f === "fave_rank") return nv == null ? "No longer a fave" : "Fave number " + nv;
   if (f === "base_rating") return "Starting stars: " + stars(nv);
   if (f === "kind") return "Kind: " + (KIND[nv] || nv);
+  if (f === "also_kinds") return (nv || []).length ? "Also a " + nv.map((k) => (KIND[k] || k).toLowerCase()).join(" and ") : "Only its main kind";
   if (nv == null || nv === "" || (Array.isArray(nv) && !nv.length)) return label + " removed";
   if (typeof nv === "string" && nv.length < 50 && f !== "description") return `${label}: ${nv}`;
   return label + " changed";

@@ -265,6 +265,7 @@ const MISSING = {
   postcode: ["Postcode", "add it under Address once it's added"],
   address: ["Address", "add it under Address once it's added"],
   website_url: ["Website", "add it under Website once it's added"],
+  trading: ["Still open?", "if you know it's closed, press Not for Shuck it"],
   google_place_id: ["Google place", "add it under Google Place ID once it's added"],
 };
 function missingList(c) {
@@ -275,7 +276,7 @@ function missingList(c) {
       const [label, how] = MISSING[m.field] || [String(m.field || "Something").replace(/_/g, " "), null];
       return el("li", { text: label + (m.why ? ` \u2014 ${m.why}` : "") + (how ? `. To add: ${how}.` : "") });
     })),
-    el("p", { class: "muted", text: "None of these stops you adding it. The weekly agent also looks for them." }));
+    el("p", { class: "muted", text: "None of these stops you adding it. To fill them in yourself first, press Keep as draft: its page opens with every field editable, then switch On the map on when it's ready. The weekly agent also looks for them." }));
 }
 function when(iso) {
   if (!iso) return "";
